@@ -68,6 +68,27 @@ function linkKind(el: Element): AssetKind {
   return 'other';
 }
 
+/**
+ * True when an `<img>` is a zero-content tracking pixel: its declared `width`
+ * and `height` are both present and both 0 or 1 (a web bug, e.g. GeoCities
+ * `visit.gif` or `geo.yahoo.com/serv`). Such a pixel is still rewritten to the
+ * archive for confinement, but it is not recorded as an asset, so it counts
+ * toward neither recovered nor missing nor the total (R4.7). This mirrors the
+ * render-time guard that hides 1×1/0×0 images. An image with no declared size,
+ * or with only one small dimension, is still counted; the render guard catches
+ * the undeclared case at 1×1/0×0.
+ */
+function isTrackingPixel(el: Element): boolean {
+  const w = el.getAttribute('width');
+  const h = el.getAttribute('height');
+  if (w === null || h === null) {
+    return false;
+  }
+  const wn = Number.parseInt(w.trim(), 10);
+  const hn = Number.parseInt(h.trim(), 10);
+  return (wn === 0 || wn === 1) && (hn === 0 || hn === 1);
+}
+
 // The attribute set from design.md §7. `video[src]` is included alongside
 // `audio[src]` so a direct video source is confined too (R3.4); the design
 // lists the media attributes by example.
@@ -75,7 +96,7 @@ const ATTR_RULES: AttrRule[] = [
   { selector: 'a[href]', attr: 'href', mode: 'url', kindOf: () => null },
   { selector: 'link[href]', attr: 'href', mode: 'url', kindOf: (el) => linkKind(el) },
   { selector: 'script[src]', attr: 'src', mode: 'url', kindOf: () => 'script' },
-  { selector: 'img[src]', attr: 'src', mode: 'url', kindOf: () => 'image' },
+  { selector: 'img[src]', attr: 'src', mode: 'url', kindOf: (el) => (isTrackingPixel(el) ? null : 'image') },
   { selector: 'img[srcset]', attr: 'srcset', mode: 'srcset', kindOf: () => 'image' },
   { selector: 'source[srcset]', attr: 'srcset', mode: 'srcset', kindOf: () => 'image' },
   { selector: 'source[src]', attr: 'src', mode: 'url', kindOf: () => 'media' },
