@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wayback": {
+      "command": "npm",
+      "args": ["--prefix", "tools/wayback-mcp", "run", "start"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": ["cdx_search", "check_capture", "find_swf"]
+    }
+  }
+}
