@@ -5,6 +5,7 @@ import {
   buildRestoredSrcDoc,
   parseRestoredMessage,
 } from '../../src/ui/restored-pane-logic.js';
+import { FLASH_ERROR_MESSAGE } from '../../src/dom/flash.js';
 import { buildArchiveUrl } from '../../src/core/archive-url.js';
 
 describe('restored pane sandbox policy', () => {
@@ -48,6 +49,37 @@ describe('buildRestoredSrcDoc', () => {
     // Ruffle loads before the body it polyfills, and before the interceptor.
     expect(out.indexOf(DEFAULT_RUFFLE_SRC)).toBeLessThan(out.indexOf('</head>'));
     expect(out).toContain('seance-restored');
+  });
+
+  it('configures Ruffle to suppress its warning UI, before the loader (R6.7)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><object data="x"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC },
+    );
+    expect(out).toContain('RufflePlayer.config');
+    expect(out).toContain('warnOnUnsupportedContent');
+    // The config must be set before the Ruffle script reads it.
+    expect(out.indexOf('RufflePlayer.config')).toBeLessThan(
+      out.indexOf(DEFAULT_RUFFLE_SRC),
+    );
+  });
+
+  it('degrades a failed Flash embed to the plain notice (R6.7, R6.5)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><object data="x"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC },
+    );
+    // An error handler is installed and it uses the plain voice.md notice text.
+    expect(out).toContain('addEventListener("error"');
+    expect(out).toContain(FLASH_ERROR_MESSAGE);
+  });
+
+  it('does not inject the Ruffle config when there is no Flash', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body></body></html>',
+    );
+    expect(out).not.toContain('RufflePlayer.config');
+    expect(out).not.toContain(FLASH_ERROR_MESSAGE);
   });
 });
 

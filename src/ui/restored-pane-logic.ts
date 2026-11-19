@@ -5,6 +5,7 @@
 // R3.8, R9.2 and design.md §8.
 
 import { parseArchiveUrl } from '../core/archive-url.js';
+import { FLASH_ERROR_MESSAGE } from '../dom/flash.js';
 
 /**
  * The iframe sandbox policy. `allow-scripts` lets Ruffle and our click
@@ -60,6 +61,44 @@ export const NAVIGATION_GUARD_SCRIPT =
   'try{window.open=function(){return null;};}catch(_e){}' +
   '})();</script>';
 
+/**
+ * Ruffle configuration, injected into the frame BEFORE the Ruffle loader so the
+ * polyfill reads it on start. It turns off Ruffle's unsupported-content warning
+ * UI (`warnOnUnsupportedContent`) — the source of the clipped red strip over a
+ * tiny embed — and the context menu and unmute overlay, and lets recovered
+ * movies autoplay. Everything here is an app-controlled constant, not archived
+ * content (R6.7).
+ */
+export const RUFFLE_CONFIG_SCRIPT =
+  '<script>window.RufflePlayer=window.RufflePlayer||{};' +
+  'window.RufflePlayer.config=Object.assign({},window.RufflePlayer.config,{' +
+  'warnOnUnsupportedContent:false,autoplay:"on",unmuteOverlay:"hidden",' +
+  'contextMenu:false,splashScreen:false});' +
+  '</script>';
+
+/**
+ * A guard injected into the frame that degrades a failed Flash embed to the
+ * plain voice.md notice instead of leaving Ruffle's broken error strip (R6.7,
+ * R6.5). It listens for an `error` event from a polyfilled Ruffle element
+ * (`<ruffle-object>`, `<ruffle-embed>`, `<ruffle-player>`) and replaces that
+ * element with the plain notice. Best-effort and browser-only; the notice text
+ * is the single-sourced `FLASH_ERROR_MESSAGE`.
+ */
+export const RUFFLE_ERROR_GUARD_SCRIPT =
+  '<script>(function(){' +
+  'var MSG=' +
+  JSON.stringify(FLASH_ERROR_MESSAGE) +
+  ';' +
+  'function notice(){var d=document.createElement("div");' +
+  'd.setAttribute("data-seance-flash","error");d.setAttribute("role","note");' +
+  'var p=document.createElement("p");p.textContent=MSG;d.appendChild(p);return d;}' +
+  'function isRuffle(n){return !!(n&&n.tagName&&/^RUFFLE-/.test(n.tagName));}' +
+  'document.addEventListener("error",function(e){' +
+  'var t=e.target;while(t&&!isRuffle(t)){t=t.parentNode;}' +
+  'if(t&&t.parentNode){t.parentNode.replaceChild(notice(),t);}' +
+  '},true);' +
+  '})();</script>';
+
 /** Options for assembling the restored document for the iframe. */
 export interface RestoredSrcDocOptions {
   /**
@@ -71,13 +110,14 @@ export interface RestoredSrcDocOptions {
 }
 
 /**
- * Inject the Ruffle loader into the document head (falling back to the body
- * open tag, then prepend). Ruffle's self-hosted build polyfills `<object>` and
- * `<embed>` `.swf` references once it loads, so no further wiring is needed in
- * the frame. The URL is an app-controlled constant, not archived content.
+ * Inject the Ruffle config and loader into the document head (falling back to
+ * the body open tag, then prepend). The config is placed before the loader so
+ * Ruffle reads it on start (R6.7). Ruffle's self-hosted build polyfills
+ * `<object>` and `<embed>` `.swf` references once it loads. The URLs/scripts
+ * here are app-controlled constants, not archived content.
  */
 function injectRuffle(html: string, url: string): string {
-  const tag = `<script src="${url}"></script>`;
+  const tag = `${RUFFLE_CONFIG_SCRIPT}<script src="${url}"></script>`;
   const headEnd = /<\/head>/i;
   if (headEnd.test(html)) {
     return html.replace(headEnd, `${tag}</head>`);
@@ -93,18 +133,25 @@ function injectRuffle(html: string, url: string): string {
  * Inject the click interceptor into a full HTML document string, before
  * `</body>` when present (falling back to `</html>`, then append). The script
  * is added last so it does not depend on load order. When `ruffleScriptUrl` is
- * given, the Ruffle loader is injected into the head first so recovered Flash
- * embeds play inside the sandboxed frame.
+ * given, the Ruffle config + loader are injected into the head first so
+ * recovered Flash embeds play inside the sandboxed frame, and the Ruffle error
+ * guard is injected alongside the interceptor so a failed embed degrades to the
+ * plain notice (R6.7).
  */
 export function buildRestoredSrcDoc(
   html: string,
   options: RestoredSrcDocOptions = {},
 ): string {
   let out = html;
-  if (options.ruffleScriptUrl !== undefined && options.ruffleScriptUrl !== '') {
-    out = injectRuffle(out, options.ruffleScriptUrl);
+  const hasRuffle =
+    options.ruffleScriptUrl !== undefined && options.ruffleScriptUrl !== '';
+  if (hasRuffle) {
+    out = injectRuffle(out, options.ruffleScriptUrl as string);
   }
-  const injected = NAVIGATION_GUARD_SCRIPT + INTERCEPTOR_SCRIPT;
+  const injected =
+    (hasRuffle ? RUFFLE_ERROR_GUARD_SCRIPT : '') +
+    NAVIGATION_GUARD_SCRIPT +
+    INTERCEPTOR_SCRIPT;
   const body = /<\/body>/i;
   if (body.test(out)) {
     return out.replace(body, `${injected}</body>`);

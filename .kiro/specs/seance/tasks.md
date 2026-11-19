@@ -334,7 +334,7 @@ pass after each.
       absent assets does not throw and shows the plain fallback; the error
       boundary renders its fallback (with retry) when a child throws.
 
-38. [ ] **Tiny-embed Ruffle failure degrades to a plain notice.** A 10px
+38. [x] **Tiny-embed Ruffle failure degrades to a plain notice.** A 10px
     `.swf` drew a clipped red Ruffle error strip on failure. Inject a Ruffle
     bootstrap into the restored frame that suppresses Ruffle's unsupported
     -content warning UI and, on a player error, replaces the embed with the

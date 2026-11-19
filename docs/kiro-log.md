@@ -1011,3 +1011,29 @@ verifier knows what changed):
   covers `getDerivedStateFromError`, children passthrough, and the fallback
   render with retry.
 - Verified: full suite 280 passing; typecheck and lint clean.
+
+
+## Task 38 — Tiny-embed Ruffle failure degrades to a plain notice (browser-test fix)
+
+- Bug (Chrome): the secondary `main_nav.swf` is 10px tall; when Ruffle failed
+  it drew a clipped red error strip inside the embed. (Task 35 fixes the CORS
+  load failure that triggered it; this hardens the residual-failure path.)
+- Fix (in `src/ui/restored-pane-logic.ts`, injected into the restored iframe
+  only when the page has playable Flash):
+  - `RUFFLE_CONFIG_SCRIPT`, injected BEFORE the Ruffle loader so the polyfill
+    reads it, sets `warnOnUnsupportedContent:false` (the clipped warning strip),
+    plus `contextMenu:false`, `unmuteOverlay:"hidden"`, `splashScreen:false`,
+    and `autoplay:"on"` for recovered movies.
+  - `RUFFLE_ERROR_GUARD_SCRIPT` listens for an `error` event from a polyfilled
+    Ruffle element (`<ruffle-*>`) and replaces it with the plain voice.md notice
+    (`FLASH_ERROR_MESSAGE`, single-sourced from `src/dom/flash.ts`) rather than
+    leaving a broken strip (R6.7, R6.5).
+- Spec: R6.7 (+R6.5); design §9.2; tasks.md task 38.
+- Tests (offline, first, in `tests/ui/restored-pane-logic.test.ts`): the built
+  srcdoc (with Flash) sets `RufflePlayer.config` with `warnOnUnsupportedContent`
+  before the loader, installs an `error` listener, and carries the plain notice
+  text; a no-Flash page injects neither.
+- Note: the full in-browser behaviour (an actual Ruffle panic replaced by the
+  notice) is browser-only, like the other Ruffle checks; the test pins the
+  injected contract.
+- Verified: full suite 283 passing; typecheck, lint, and `npm run build` clean.
