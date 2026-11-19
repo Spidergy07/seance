@@ -1127,3 +1127,136 @@ tasks 39–42. One commit per task; a failing test first; full suite + typecheck
   each with a plain subtitle line beneath, no em dash.
 - Re-run the earlier error-state and accessibility/keyboard checks; nothing in
   this round changed those paths.
+
+
+## Phase 10 — Polish, MCP server, write-up
+
+Spec first for the whole phase (requirements R3.12 extended, R4.7 added, R7.3
+extended; design §6/§7/§8.1/§10; tasks 43–49). One commit per task; a failing
+test first where testable; full suite + typecheck + lint green after each.
+
+### Task 43 — Re-fit the Flash stage after Ruffle mounts
+
+- Bug (Chrome): the 550px homestarrunner Flash stage was still clipped on the
+  right in the ~546px desktop Restored pane. Fit-to-width ran on load, but
+  Ruffle then replaced the embed with its own player element at the movie's
+  natural width, so the page overflowed again after the first fit.
+- Fix (`src/ui/restored-pane-logic.ts`): `FIT_TO_WIDTH_SCRIPT` now coalesces
+  fits through a `requestAnimationFrame`-based `schedule()`, re-fits on a
+  `MutationObserver` watching `childList`/`subtree` (the embed → player swap is
+  a child-node change; fit only writes `body.style`, an attribute, so it does
+  not loop on its own writes), and re-fits a few times on a short timer to catch
+  the player sizing itself once the `.swf` loads.
+- Tests (first): the built srcdoc carries `MutationObserver` and `childList`,
+  alongside the existing `scrollWidth`/`resize`/`scale(` wiring.
+- Verified: 293 tests; typecheck and lint clean.
+
+### Task 44 — Collapse the empty reader; give Restored the full width
+
+- Bug: when readability found no article, the empty Reader card still took half
+  the width next to Restored.
+- Fix: new pure `src/ui/result-layout.resultPanesClass(readerOk)` returns
+  `panes` with an article and `panes panes--solo` without; `.panes--solo` is one
+  full-width column at every width (placed after the two-column breakpoint so it
+  wins the cascade). `ReaderPane` renders the empty case with a `pane--note`
+  compact modifier; `App` sets the container class from `reader.ok`.
+- Tests (first): `resultPanesClass` both branches; a theme.css guard that
+  `.panes--solo` is a single column and sits after the two-column rule; the
+  empty `ReaderPane` carries `pane--note`.
+- Verified: 300 tests; typecheck and lint clean.
+
+### Task 45 — Exclude zero-content tracking pixels from accounting
+
+- Bug: 1×1/0×0 tracking pixels (now hidden at render, R3.13) still counted in
+  the certificate, so the number did not match what the page showed.
+- Fix (`src/dom/rewrite-document.ts`): `isTrackingPixel(el)` treats an `<img>`
+  with declared `width` and `height` both 0 or 1 as a web bug; its `src` is
+  still rewritten to the archive for confinement, but it is not recorded as an
+  asset, so it counts toward neither recovered, missing, nor the total (R4.7).
+  An image with no declared size is still counted; the render guard hides it if
+  it loads at 1×1/0×0.
+- Tests (first): a `width=1 height=1` pixel is rewritten but absent from the
+  collected assets; a normal image is still collected; `width=0 height=0` is
+  excluded; a `400×1` strip is still counted.
+- Verified: 300 tests; typecheck and lint clean.
+
+### Task 46 — Wayback MCP server
+
+- Built `tools/wayback-mcp/`, a local Model Context Protocol server over stdio
+  (TypeScript, the official `@modelcontextprotocol/sdk` 1.12.1 + zod, run with a
+  local `tsx`; no global install). Three tools: `cdx_search`, `check_capture`,
+  `find_swf`.
+- `src/wayback.ts` holds the tool logic (fetch injected) and reuses Seance's own
+  code: `parseCdxRows`/`byDate` from `src/core/capture-select`, `buildArchiveUrl`
+  from `src/core/archive-url`, `detectFlashRefs` from `src/dom/flash`, and
+  `fetchWithRetry`/`DEFAULT_RETRY_OPTIONS` from `api/http.ts`, so it has the same
+  timeout and rate-limit care. All archive traffic goes to `web.archive.org`
+  only; nothing is persisted. `src/index.ts` is the thin MCP wiring (kept free of
+  the SDK in the test graph by isolating it from `wayback.ts`).
+- Tests (first, offline): `tests/tools/wayback.test.ts` (9 cases with a mocked
+  fetch): CDX parsing + day collapse + the 200 filter in the query string;
+  `check_capture` exact and closest and none; `find_swf` detecting object/embed/
+  param `.swf` from fixture HTML (two archive requests) and reporting no capture
+  without a page fetch; and URL/timestamp validation.
+- Smoke test: an `initialize` + `tools/list` handshake over stdio returned all
+  three tools with correct JSON schemas, and the tool typecheck is clean.
+- Problem hit: the SDK's `server.tool` handler types its args as a generic
+  record, so each handler casts to its param type; `@types/node` was added for
+  the tool's own typecheck; eslint ignores were widened to `**/node_modules/**`
+  and `tools/**/*.ts` was given node globals.
+- Verified: 309 tests (9 new); root typecheck and lint clean.
+
+### Task 47 — Register the MCP server for Kiro
+
+- Added the server to the `seance` agent config (`.kiro/agents/seance.json`)
+  under `mcpServers`, and listed the three tools in `tools`/`allowedTools`.
+- `.kiro/settings/mcp.json` is write-protected in this workspace's agent
+  sandbox, so the identical config is committed as a template at
+  `tools/wayback-mcp/mcp.json`, with a one-line `cp` instruction in the tool
+  README. The launch command is `npm --prefix tools/wayback-mcp run start`,
+  which uses the tool's local `tsx`.
+- Verified: both JSON files parse.
+
+### Task 48 — Find demo URLs with the MCP server
+
+- Ran the three tools against the live archive through
+  `tools/wayback-mcp/scripts/demo-probe.ts` (which wraps the real fetch with a
+  request counter). Used 12 archive requests (budget 25).
+- Chose two public-domain NASA education pages: `kids.msfc.nasa.gov` (last
+  working 26 September 2007; Flash `HPAgain3.swf` in the 30 December 2005
+  capture, confirmed HTTP 200 Flash bytes, so it is a capture-picker + Ruffle
+  demo), and `spacelink.nasa.gov` (last working 31 January 2005; a plain death
+  certificate). `find_swf` on the 2007 capture returned no `.swf`, which is why
+  the picker is needed to reach the 2005 Flash. Recorded in `docs/demo-urls.md`.
+- Problem hit: the default `cdx_search` limit returns the oldest rows, so the
+  true last-working date needed a `from`/`to` bracket on recent years; noted in
+  the probe commands.
+
+### Task 49 — Kiro write-up
+
+- Wrote `docs/kiro-writeup.md` for the Devpost "how Kiro was used" field from
+  this log and git history: the Kiro CLI surface and phase-by-phase runs, the
+  custom `seance` agent, the postToolUse test hook and the red-to-green pattern
+  it showed, spec-driven development versus vibe coding, the steering docs
+  (`structure.md` mattered most), the MCP server and what it enabled,
+  property-based testing (the six rewriter invariants, and the honest note that
+  no property test caught a surprise regression during the build), and the Kiro
+  powers result.
+- Kiro powers: `kiro-cli powers` has only `install`/`uninstall` and no catalog
+  list; logged in, several relevant names (`git`, `playwright`, `vitest`,
+  `typescript`, `mcp`, `browser`) all returned "No power named … in the
+  catalog", so none was installed. Recorded honestly as "none fit".
+- Plain English, no hype words (grep clean), no em dashes (grep clean).
+
+### Re-check in a browser (needs a human; `npm run dev`, no server started here)
+
+- `http://kids.msfc.nasa.gov/`: the certificate reads "died 26 September 2007";
+  opening the 30 December 2005 capture from the picker plays `HPAgain3.swf`
+  through Ruffle, and the 550px Flash stage now fits the ~546px desktop pane and
+  375px phone (resize to confirm it rescales after Ruffle mounts).
+- `http://spacelink.nasa.gov/`: the certificate reads "died 31 January 2005" and
+  the recovery percentage reflects what actually loaded.
+- A page with no readable article: the Reader collapses to a slim note and the
+  Restored pane takes the full width.
+- A page with 1×1 tracking pixels: the certificate count matches the visible
+  assets (the pixels are not counted and are hidden).

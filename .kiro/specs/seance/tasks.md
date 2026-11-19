@@ -402,7 +402,7 @@ deepen-Kiro items (a local MCP server and the Devpost write-up). Spec first, a
 failing test first where testable, one commit per task; tests and typecheck
 pass after each.
 
-43. [ ] **Re-fit the Flash stage after Ruffle mounts.** The 550px homestarrunner
+43. [x] **Re-fit the Flash stage after Ruffle mounts.** The 550px homestarrunner
     Flash stage was still clipped on the right in the ~546px desktop Restored
     pane: fit-to-width ran on load, but Ruffle later replaced the embed with its
     own player element at the movie's natural width, so the page overflowed
@@ -413,7 +413,7 @@ pass after each.
     - Tests (first): the built srcdoc carries a `MutationObserver` observing
       `childList`, in addition to the `scrollWidth`/`resize`/`scale(` wiring.
 
-44. [ ] **Collapse the empty reader; give Restored the full width.** When
+44. [x] **Collapse the empty reader; give Restored the full width.** When
     readability finds no article the Reader card still took half the width next
     to Restored. Collapse the reader note to a small line and give the restored
     view the full pane width in that case. [R7.3, D10]
@@ -422,7 +422,7 @@ pass after each.
       `.panes--solo` is a single full-width column; the empty ReaderPane renders
       a compact note.
 
-45. [ ] **Exclude zero-content tracking pixels from accounting.** 1×1/0×0
+45. [x] **Exclude zero-content tracking pixels from accounting.** 1×1/0×0
     tracking images (now hidden at render, R3.13) must not count toward
     recovered, missing, or the total, so the certificate number matches what the
     page shows. In the document rewriter, an `<img>` with declared width and
@@ -432,7 +432,7 @@ pass after each.
       archive but absent from the collected assets; a normal image is still
       collected; a `width=0 height=0` pixel is excluded too.
 
-46. [ ] **Wayback MCP server.** Build a small local MCP server in
+46. [x] **Wayback MCP server.** Build a small local MCP server in
     `tools/wayback-mcp/` (TypeScript, stdio, the official MCP SDK, installed
     locally) exposing `cdx_search` (url, from, to, limit; status-200 filter,
     one capture per day), `find_swf` (url, year; archived `.swf` files a capture
@@ -443,19 +443,19 @@ pass after each.
       day collapse, `.swf` detection from fixture HTML, a single capture's
       status; a non-archive host is rejected.
 
-47. [ ] **Register the MCP server for Kiro.** Add `.kiro/settings/mcp.json`
+47. [x] **Register the MCP server for Kiro.** Add `.kiro/settings/mcp.json`
     pointing at the local server and list it in the `seance` agent config so
     Kiro can call it. [tech.md]
     - Check: `mcp.json` parses; the agent config references the server.
 
-48. [ ] **Find demo URLs with the MCP server.** Use the server (at most 25
+48. [x] **Find demo URLs with the MCP server.** Use the server (at most 25
     archive requests total) to find brand-safe demo URLs from public-domain
     sources (e.g. NASA/NOAA pages, 1998–2008): ideally one with an archived
     `.swf` that plays and one plain HTML page with a clear "died" date and some
     missing assets. Record the URLs, timestamps, and reasons in
     `docs/demo-urls.md`. [product.md success criteria]
 
-49. [ ] **Write the Kiro write-up.** Write `docs/kiro-writeup.md` for the
+49. [x] **Write the Kiro write-up.** Write `docs/kiro-writeup.md` for the
     Devpost "how Kiro was used" field from `docs/kiro-log.md` and git history:
     the Kiro surface and custom agent, the postToolUse test hook, spec-driven
     development vs vibe coding, steering docs, the MCP server, property-based
