@@ -180,6 +180,15 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   attributes, and `<style>` text content.
 - Each URL goes through `core/url-rewriter.rewrite`. The DOM layer never builds
   archive URLs itself.
+- `video[src]` is rewritten alongside `audio[src]` so a direct video source is
+  confined too; the attribute list above names the media attributes by example.
+- Asset accounting scope: the rewriter collects element-level assets (images,
+  stylesheets, scripts, media, Flash, frames) for the recovery report, keyed by
+  resolved original URL and de-duplicated. `<a href>` navigation links are
+  rewritten for confinement but are not counted as assets. URLs referenced only
+  from CSS `url(...)` (in `<style>` or inline `style`) are rewritten for
+  confinement but are not individually enumerated in the report, to keep the
+  recovery count bounded.
 - `<base>` tags are removed or neutralised so they cannot redirect resolution
   off the archive.
 - Internal `<a>` clicks are intercepted by the app shell (not here) to re-run

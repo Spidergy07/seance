@@ -98,7 +98,7 @@ Legend: [R#] requirement id, [D#] design section.
 
 ## Phase 3 — DOM rewriting + reader + Flash (Days 5–7)
 
-13. **Document rewriter.** Implement `src/dom/rewrite-document.ts`: walk the
+13. [x] **Document rewriter.** Implement `src/dom/rewrite-document.ts`: walk the
     attribute set in [D7], delegate every URL to `core/url-rewriter`, neutralise
     `<base>`. [R3.1, R3.7 prep, D7]
     - Tests (`tests/dom/rewrite-document.test.ts`, linkedom + fixture HTML):

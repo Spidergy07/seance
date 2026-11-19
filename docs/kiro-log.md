@@ -233,3 +233,33 @@ was built, which Kiro features were used, and any problem hit.
   R9.1/R9.2), `structure.md` (archive/ is the only network layer and may import
   the pure core), and `tech.md` (typed results, offline tests).
 - Problems hit: none. 117 tests pass, typecheck clean.
+
+## Task 13 — Document rewriter
+
+- Implemented `src/dom/rewrite-document.ts`: `rewriteDocument(doc, ctx)` walks
+  the design.md §7 attribute set (`a[href]`, `link[href]`, `script[src]`,
+  `img[src]`, `img[srcset]`, `source[src]`, `source[srcset]`, `video[poster]`,
+  `video[src]`, `audio[src]`, `iframe[src]`, `object[data]`, `embed[src]`,
+  inline `style`, and `<style>` text), delegating every URL to
+  `core/url-rewriter` (`rewrite`/`rewriteSrcset`/`rewriteCssUrls`). It removes
+  every `<base>` element and returns the de-duplicated element-level assets it
+  referenced, with a kind each (link rel → stylesheet/image/other, `.swf` →
+  flash, etc.).
+- Works on a `Document`, so the same code runs under `DOMParser` in the browser
+  and `linkedom` in tests. HTML fixtures load as strings via Vite's `?raw`
+  import (ambient declaration in `tests/raw-modules.d.ts`), avoiding Node `fs`
+  typings under `types: []`.
+- Tests (`tests/dom/rewrite-document.test.ts`, 7 cases, linkedom + a new
+  `tests/fixtures/html/sample.html`): `<base>` removed; stylesheet/img/script
+  and external links rewritten to the archive; in-page fragment and `mailto:`
+  left untouched; both `srcset` candidates rewritten with descriptors kept;
+  `<style>` and inline `url(...)` rewritten; a document-wide **confinement**
+  sweep asserting no element references a non-archive host; and asset
+  collection yielding 13 unique assets with the expected kind counts.
+- Spec changes: documented in `design.md` §7 the asset-accounting scope (links
+  not counted; CSS `url(...)` rewritten but not enumerated) and the addition of
+  `video[src]` to the confined attribute set.
+- Kiro features used: the `seance` spec (`design.md` §7, `requirements.md`
+  R3.1/R3.4/R3.7-prep), `structure.md` (dom/ may use the DOM but defers every
+  URL decision to core), and the fixtures layout.
+- Problems hit: none. 124 tests pass, typecheck and lint clean.

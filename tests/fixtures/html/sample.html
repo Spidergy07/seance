@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Old Home Page</title>
+    <base href="http://oldsite.example/base/" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" href="favicon.ico" />
+    <style>
+      body { background: url("/img/bg.png"); }
+      .hero { background-image: url(img/hero.jpg); }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome</h1>
+    <p>
+      <a href="/about.html">About</a>
+      <a href="https://other.example/external">External</a>
+      <a href="#section">Jump</a>
+      <a href="mailto:hi@oldsite.example">Mail</a>
+    </p>
+    <img src="/img/logo.png" alt="logo" />
+    <img
+      srcset="/img/small.png 1x, /img/large.png 2x"
+      src="/img/small.png"
+      alt="responsive"
+    />
+    <picture>
+      <source srcset="/img/pic.webp 1x" />
+    </picture>
+    <video poster="/img/poster.jpg" src="/media/clip.mp4"></video>
+    <audio src="/media/sound.mp3"></audio>
+    <div style="background: url('/img/panel.png')">panel</div>
+    <script src="/js/app.js"></script>
+    <iframe src="/embed/widget.html"></iframe>
+    <object data="/flash/intro.swf"></object>
+    <embed src="/flash/banner.swf" />
+  </body>
+</html>
