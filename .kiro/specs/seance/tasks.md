@@ -78,7 +78,7 @@ Legend: [R#] requirement id, [D#] design section.
 
 ## Phase 2 — Network boundary + proxy (Days 4–5)
 
-10. **CDX proxy function.** Implement `api/cdx.ts`: accept an original URL,
+10. [x] **CDX proxy function.** Implement `api/cdx.ts`: accept an original URL,
     query the Wayback CDX API, return parsed rows as JSON. Add a hard timeout,
     backoff/retry on 429 and transient errors, and `Retry-After` handling. No
     persistence. [R2.1, R8.2–R8.4, R9.1, R9.5, D11]

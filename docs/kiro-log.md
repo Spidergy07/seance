@@ -154,3 +154,34 @@ was built, which Kiro features were used, and any problem hit.
 - Kiro features used: `design.md` §6, `requirements.md` R4.3–R4.5 and R8.6
   (honesty: unknown is never reported as recovered).
 - Problems hit: none. 77 tests pass, typecheck and lint clean.
+
+## Task 10 — CDX proxy function
+
+- Implemented `api/cdx.ts`: `buildCdxRequestUrl`, `fetchCdxRows`, and the
+  host-agnostic `handleCdxRequest(request)` entry point (standard `Request` →
+  `Response`, so it runs on Vercel/Netlify functions or a Cloudflare Worker).
+  It validates the `?url=` param as an absolute http(s) URL, queries the
+  Wayback CDX API with `output=json`, and returns the rows as JSON. Stateless:
+  nothing persisted (R9.1, R9.5).
+- Added a shared helper `api/http.ts`: `fetchWithRetry` with a hard per-attempt
+  timeout (AbortController), bounded exponential backoff with full jitter, and
+  retries limited to HTTP 429, 5xx, and network/timeout errors. Other 4xx are
+  not retried. `Retry-After` (integer seconds or HTTP date) is honoured. A
+  typed `UpstreamError` carries the failure kind, mapped to an HTTP status for
+  the proxy response (design.md §11).
+- The helper's side effects (fetch, sleep, random) are injectable, so the retry
+  and timeout behaviour is tested offline with no real timers for backoff and a
+  tiny timeout for the abort case.
+- Tests: `tests/api/http.test.ts` (11 cases: success, retry on 429/5xx/network,
+  give-up after capped attempts, no retry on other 4xx, timeout aborts,
+  `parseRetryAfter`, status mapping) and `tests/api/cdx.test.ts` (11 cases:
+  request shape + User-Agent, row parsing, empty body → no captures, retry,
+  give-up, bad-request validation with no network call, handler status
+  mapping).
+- Spec change: added `api/http.ts` to `structure.md`'s planned layout; the
+  original map listed only `cdx.ts` and `snapshot.ts`, but a shared
+  timeout/retry helper keeps both proxies DRY and is referenced by task 11.
+- Kiro features used: the `seance` spec (`design.md` §11 timeout/retry policy,
+  `requirements.md` R2.1, R8.2–R8.4, R9.1, R9.5), `tech.md` steering (serverless
+  proxy, stateless, no DB), and `structure.md` (api/ holds no DOM/React).
+- Problems hit: none. 99 tests pass, typecheck clean.

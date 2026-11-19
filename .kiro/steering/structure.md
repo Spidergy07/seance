@@ -59,6 +59,7 @@ seance/
     main.tsx             # React entry
 
   api/                   # serverless function(s); the CDX proxy
+    http.ts              # shared timeout + retry/backoff helper for the proxies
     cdx.ts               # proxy CDX queries to the Wayback Machine
     snapshot.ts          # proxy archived resource fetches (if needed)
 
