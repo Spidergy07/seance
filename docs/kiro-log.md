@@ -960,3 +960,23 @@ verifier knows what changed):
   `access-control-allow-origin: *`, 16124 bytes beginning `CWS` (a compressed
   SWF); a non-archive host returned 400 with no fetch.
 - Verified: full suite 269 passing; typecheck and lint clean.
+
+
+## Task 36 — One capture entry per day in the picker (browser-test fix)
+
+- Bug (Chrome): the saved-date list repeated the same day several times (three
+  "17 November 2026"), because the picker listed every capture and a busy day
+  has many captures.
+- Fix: new pure `collapseCapturesByDay` in `src/ui/capture-picker-logic.ts`
+  keeps one capture per calendar day, preferring a working (status-200) capture
+  for the day (and the most recent among those), else the most recent of any
+  status; days stay newest-first. `groupCapturesByYear` now collapses by day
+  first, so the picker's native, keyboard-operable date list shows each date
+  once. Capture selection consistency holds: the default selected capture (most
+  recent 200) is the collapsed representative of its day, and every pickable
+  option is a collapsed capture.
+- Spec: R2.6; design §5; tasks.md task 36.
+- Tests (offline, first): `collapseCapturesByDay` cases (prefer 200, fall back
+  to most recent, keep separate days newest-first) and a year-grouping case
+  asserting a day is not repeated, in `tests/ui/capture-picker-logic.test.ts`.
+- Verified: full suite 273 passing; typecheck and lint clean.

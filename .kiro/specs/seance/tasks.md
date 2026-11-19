@@ -317,7 +317,7 @@ pass after each.
       and leaves the target an archive URL (confinement preserved); the router
       dispatches `/api/swf`.
 
-36. [ ] **One capture entry per day in the picker.** The saved-date list
+36. [x] **One capture entry per day in the picker.** The saved-date list
     repeated the same day many times (three "17 November 2026"). Collapse to one
     entry per calendar day, preferring a working (200) capture for that day.
     Keep the native, keyboard-operable control. [R2.6, D5]
