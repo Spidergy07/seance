@@ -324,3 +324,33 @@ was built, which Kiro features were used, and any problem hit.
 - Problems hit: the first no-article fixture (a nav page) still extracted
   content; switched to an empty-body fixture after probing Readability's
   behaviour under linkedom.
+
+## Task 16 — Flash detection + Ruffle mount
+
+- Implemented `src/dom/flash.ts`:
+  - `detectFlashRefs(doc)` finds `<object data>`, `<embed src>`, and bare
+    `<a href>` `.swf` references, recovering the original `.swf` URL whether the
+    value is still plain or already an archive URL (via `parseArchiveUrl`).
+  - `flashStatus(capture)` maps a 200 capture to `recovered`, everything else to
+    `missing`.
+  - `mountFlash(target, options, deps)` replaces the element with a Ruffle
+    player (recovered), a plain "not saved" notice (missing, R6.3), or a plain
+    error notice if Ruffle fails — without throwing, so the rest of the page
+    still renders (R6.5). Plain-language strings come straight from voice.md.
+- Ruffle is loaded through an injectable `RuffleFactory`, so tests drive the
+  mount logic with a fake player and never load WebAssembly. The real
+  browser-only factory (loading Ruffle from its official distribution) is wired
+  in the UI/integration phase; keeping it behind the injection boundary is the
+  design's intent (design.md §9).
+- Tests (`tests/dom/flash.test.ts`, 8 cases, with a new `flash.html` fixture):
+  detection of object/embed/anchor `.swf` (and ignoring non-swf and a plain
+  absolute `.swf`), status mapping, a recovered mount calling `player.load`
+  with the archive URL and showing the playing label, the missing notice
+  without loading Ruffle, and the error notice for both a load failure and a
+  post-mount init failure.
+- Deferred: the "one real archived .swf plays in the browser" check is manual
+  and belongs to task 25 (no browser/real network here).
+- Kiro features used: the `seance` spec (`design.md` §9, `requirements.md`
+  R6.1–R6.5), voice.md (exact Flash messages), `structure.md` (dom/ with an
+  injected loader; no WASM in tests).
+- Problems hit: none. 140 tests pass, typecheck and lint clean.

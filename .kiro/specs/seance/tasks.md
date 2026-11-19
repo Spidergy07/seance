@@ -118,7 +118,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: fixture article extracts expected text; images in reader output
       are archive URLs; no-article fixture returns the empty-article result.
 
-16. **Flash detection + Ruffle mount.** Implement `src/dom/flash.ts`: detect
+16. [x] **Flash detection + Ruffle mount.** Implement `src/dom/flash.ts`: detect
     `.swf`, check capture, mount Ruffle for recovered, plain notice for missing,
     plain error on Ruffle failure. [R6.1–R6.5, D9]
     - Tests: detection logic and status mapping are unit-tested; Ruffle mount is
