@@ -787,3 +787,20 @@ was built, which Kiro features were used, and any problem hit.
   and `capture-picker.test.ts` (renders years/dates, hides itself for a single
   capture). Wrote tests first, then implemented.
 - Verified: `npm run typecheck` clean; full suite 230 passing.
+
+
+## Task 31 — Fix "how it works" step number/text overlap (fix round)
+
+- Bug: on the home page the numbered circle overlapped the first word of each
+  step's text.
+- Root cause: `.steps li` had `padding-left: var(--s-6)` (2rem), but the
+  numbered circle `.steps li::before` sits at `left: var(--s-4)` (1rem) and is
+  1.4rem wide, so its right edge is at 2.4rem — 0.4rem past where the text
+  began.
+- Fix (`src/ui/theme.css`): raise the item's left padding to `var(--s-7)` (3rem)
+  so text starts clear of the circle (0.6rem gap) at any width.
+- Spec: tasks.md task 31 (voice.md visual rules).
+- Tests (offline): `tests/ui/steps-layout.test.ts` parses theme.css, resolves
+  the spacing tokens, and asserts `.steps li` left padding ≥ the circle's
+  `left + width`. Wrote the guard first (failing at 2 < 2.4), then fixed.
+- Verified: `npm run typecheck` clean; full suite 231 passing; lint clean.
