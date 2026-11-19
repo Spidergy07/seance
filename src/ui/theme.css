@@ -1,0 +1,377 @@
+/* Seance theme. Mood comes from colour, type, and spacing, not clipart or
+ * logos (voice.md). Colour carries information: a warm candle amber marks
+ * recovered/live state, a cold grey-blue marks missing state, so colour is
+ * never the only signal but it is always a real one. Dark ground throughout.
+ *
+ * Built mobile-first (375px up) with a two-pane desktop layout above 60rem.
+ * All motion is gated behind prefers-reduced-motion. */
+
+:root {
+  /* Ground and raised surfaces. */
+  --bg: #0d0b12;
+  --bg-raised: #171320;
+  --bg-sunken: #0a0810;
+  --panel-edge: rgba(236, 230, 218, 0.12);
+  --panel-edge-strong: rgba(236, 230, 218, 0.22);
+
+  /* Ink. */
+  --ink: #ece6da;
+  --ink-dim: #a79e90;
+  --ink-faint: #6f685e;
+
+  /* Candle amber = live / recovered. */
+  --candle: #f4b860;
+  --candle-deep: #e08a2a;
+  --candle-glow: rgba(244, 184, 96, 0.22);
+
+  /* Cold grey-blue = missing / the other side. */
+  --cold: #7f93a8;
+  --cold-deep: #4d5f72;
+
+  /* Ember red = a genuine error. */
+  --ember: #d6705f;
+  --ember-deep: #93392c;
+
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  /* Spacing scale (0.25rem steps). */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L',
+    Palatino, 'Book Antiqua', Georgia, serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+
+  --maxw: 72rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  /* Two faint candle pools behind the board; pure CSS, no imagery. */
+  background-image:
+    radial-gradient(60rem 40rem at 50% -10rem, rgba(244, 184, 96, 0.12), transparent 70%),
+    radial-gradient(40rem 40rem at 110% 20%, rgba(127, 147, 168, 0.08), transparent 70%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0;
+}
+
+a {
+  color: var(--candle);
+}
+
+:focus-visible {
+  outline: 2px solid var(--candle);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* --- Skip link ------------------------------------------------------------ */
+.skip-link {
+  position: absolute;
+  left: var(--s-2);
+  top: -3rem;
+  background: var(--bg-raised);
+  color: var(--ink);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--radius);
+  z-index: 10;
+  transition: top 120ms ease;
+}
+.skip-link:focus {
+  top: var(--s-2);
+}
+
+/* --- Shell layout --------------------------------------------------------- */
+.seance {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: var(--s-5) var(--s-4) var(--s-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  min-height: 100vh;
+}
+
+/* --- The board (header + input) ------------------------------------------ */
+.board {
+  text-align: center;
+  padding: var(--s-6) var(--s-4) var(--s-5);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(23, 19, 32, 0.9), rgba(13, 11, 18, 0.9));
+  /* The thin double rule evokes an ouija board frame without any artwork. */
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 230, 218, 0.04),
+    inset 0 0 0 7px rgba(13, 11, 18, 0.6),
+    inset 0 0 0 8px var(--panel-edge);
+  position: relative;
+}
+
+.board__eyebrow {
+  margin: 0 0 var(--s-2);
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  font-size: 0.72rem;
+  color: var(--candle);
+}
+
+.board__title {
+  font-size: clamp(2.6rem, 9vw, 4.4rem);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 28px var(--candle-glow);
+}
+
+.board__subtitle {
+  margin: var(--s-3) auto 0;
+  max-width: 44ch;
+  color: var(--ink-dim);
+}
+
+/* --- Planchette (URL input) ---------------------------------------------- */
+.planchette {
+  margin: var(--s-5) auto 0;
+  max-width: 40rem;
+  text-align: left;
+}
+
+.planchette__label {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  margin-bottom: var(--s-2);
+}
+
+.planchette__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.planchette__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--s-3) var(--s-4);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--bg-sunken);
+  border: 1px solid var(--panel-edge-strong);
+  border-radius: var(--radius);
+}
+.planchette__input::placeholder {
+  color: var(--ink-faint);
+}
+.planchette__input:disabled {
+  opacity: 0.6;
+}
+
+.planchette__submit {
+  padding: var(--s-3) var(--s-5);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+  color: #2a1c08;
+  background: linear-gradient(180deg, var(--candle), var(--candle-deep));
+  border: 1px solid var(--candle-deep);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: 0 0 18px var(--candle-glow);
+  transition: transform 100ms ease, box-shadow 160ms ease;
+}
+.planchette__submit:hover:not(:disabled) {
+  box-shadow: 0 0 26px var(--candle-glow);
+}
+.planchette__submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.planchette__submit:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.4) brightness(0.8);
+  box-shadow: none;
+}
+
+.planchette__hint,
+.planchette__error {
+  margin: var(--s-3) 0 0;
+  font-size: 0.9rem;
+}
+.planchette__hint {
+  color: var(--ink-dim);
+}
+.planchette__interpreted {
+  color: var(--candle);
+  word-break: break-all;
+}
+.planchette__error {
+  color: var(--ember);
+}
+
+@media (min-width: 30rem) {
+  .planchette__row {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+/* --- Stage (main content region) ----------------------------------------- */
+.stage {
+  flex: 1;
+}
+.stage:focus {
+  outline: none;
+}
+
+.stage__intro {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-4);
+}
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: var(--s-4) var(--s-4) var(--s-4) var(--s-6);
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  color: var(--ink-dim);
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: var(--s-4);
+  top: var(--s-4);
+  width: 1.4rem;
+  height: 1.4rem;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--candle);
+  border: 1px solid var(--candle-deep);
+  border-radius: 50%;
+}
+.steps__themed {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* --- Contacting (loading) ------------------------------------------------ */
+.contacting {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--s-5);
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+}
+.contacting__pulse {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--candle);
+  box-shadow: 0 0 0 0 var(--candle-glow);
+  animation: pulse 1.6s ease-out infinite;
+}
+.contacting__line {
+  margin: 0;
+  color: var(--ink);
+}
+.contacting__url {
+  color: var(--candle);
+  word-break: break-all;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 184, 96, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 0.9rem rgba(244, 184, 96, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 184, 96, 0);
+  }
+}
+
+/* --- Placeholder (temporary; replaced by panes/banner in later tasks) ---- */
+.placeholder {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--s-5);
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+}
+
+/* --- Credits -------------------------------------------------------------- */
+.credits {
+  border-top: 1px solid var(--panel-edge);
+  padding-top: var(--s-4);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  text-align: center;
+}
+.credits p {
+  margin: 0 auto;
+  max-width: 60ch;
+}
+
+/* --- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .contacting__pulse {
+    animation: none;
+    box-shadow: 0 0 0 0.4rem var(--candle-glow);
+  }
+}

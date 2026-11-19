@@ -127,7 +127,7 @@ Legend: [R#] requirement id, [D#] design section.
 
 ## Phase 4 — UI (Days 7–9)
 
-17. **App shell + URL input.** `src/ui/App.tsx`, `src/ui/UrlInput.tsx`,
+17. [x] **App shell + URL input.** `src/ui/App.tsx`, `src/ui/UrlInput.tsx`,
     `src/main.tsx`. Validate input with the WHATWG URL API; scheme-guess flow;
     disable control while running. [R1.1–R1.4, D3 step 1]
     - Tests: validation accepts/rejects the right inputs; scheme guess surfaces

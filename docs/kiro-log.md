@@ -354,3 +354,49 @@ was built, which Kiro features were used, and any problem hit.
   R6.1–R6.5), voice.md (exact Flash messages), `structure.md` (dom/ with an
   injected loader; no WASM in tests).
 - Problems hit: none. 140 tests pass, typecheck and lint clean.
+
+## Task 17 — App shell + URL input
+
+- Implemented the Phase 4 foundation:
+  - `src/ui/url-input-logic.ts`: pure `interpretUrlInput(raw)` → empty / valid /
+    guess / invalid, using the WHATWG `URL` API. A typed scheme must be http(s)
+    (non-http names the scheme and is rejected, R1.2); a scheme-less host is
+    offered as `https://` (R1.3). `resolvedUrl` gives the URL a submit searches.
+  - `src/ui/UrlInput.tsx`: the planchette. Controlled field, placeholder and
+    labels straight from voice.md, the interpreted URL shown as a hint before
+    searching, inline error on blur/submit, submit disabled while busy (R1.4)
+    and when there is no resolvable URL. Accessible: real `<label>`,
+    `aria-describedby`, `aria-invalid`, `role="alert"`/`aria-live`.
+  - `src/ui/types.ts`: the app phases (idle/running/error/done) and the
+    `RecoveryView` / `RecoveryOutcome` view model the panes consume.
+  - `src/ui/recover.ts`: the recovery pipeline (captures → selection → snapshot
+    → rewrite → asset status → report → reader), with every side effect
+    injected so it runs under linkedom in tests and the browser in production.
+    Added so the shell is functional; its fixture-driven integration test is
+    task 22.
+  - `src/ui/App.tsx`: the state machine. Holds the phase, runs recovery via an
+    injectable function, guards against a stale recovery overwriting a newer
+    one, and renders idle/running screens plus placeholders the later tasks
+    replace. Includes a skip link and plain-text credits.
+  - `src/ui/theme.css`: the seance look — candle-amber accent for live state,
+    cold grey-blue for missing, dark ground, ouija-board framed header, serif
+    display type, mobile-first, all motion gated behind
+    `prefers-reduced-motion`. No clipart or logos.
+  - `src/main.tsx`: mounts `App` and imports the theme; `src/shims.d.ts`
+    declares the `*.css` side-effect import so it typechecks under `types: []`.
+- Tests: `tests/ui/url-input-logic.test.ts` (9 cases: accept/reject, scheme
+  guess, query/fragment preserved, javascript: rejected); `url-input.test.ts`
+  (4 cases, rendered with `react-dom/server` under Node: placeholder/labels,
+  busy disables, interpreted-URL hint, empty disables submit); `app.test.ts`
+  (idle screen renders title, input, plain-text credits, skip link).
+- Kiro features used: the `seance` spec (`requirements.md` R1.1–R1.4,
+  `design.md` §3 step 1, §11), voice.md (copy + visual rules),
+  `structure.md` (ui/ holds React only; logic stays pure and separate).
+- Design decision: UI components stay thin and the testable logic lives in
+  pure modules, so tests run under the existing Node + `react-dom/server`
+  setup with no new browser/jsdom dependency.
+- Problems hit: `createElement(App, { recover })` failed to typecheck while
+  `App` had a defaulted optional props parameter (overload inferred `Attributes`
+  instead of the props type). Fixed by giving `App` a single non-optional
+  `AppProps` parameter; `<App />` still renders since every prop is optional.
+- Verified: 154 tests pass (14 new), typecheck and lint clean.
