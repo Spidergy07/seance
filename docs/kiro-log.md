@@ -185,3 +185,24 @@ was built, which Kiro features were used, and any problem hit.
   `requirements.md` R2.1, R8.2–R8.4, R9.1, R9.5), `tech.md` steering (serverless
   proxy, stateless, no DB), and `structure.md` (api/ holds no DOM/React).
 - Problems hit: none. 99 tests pass, typecheck clean.
+
+## Task 11 — Snapshot proxy
+
+- Implemented `api/snapshot.ts`: `buildSnapshotRequestUrl`,
+  `fetchSnapshotResponse`, and `handleSnapshotRequest(request)`. It reads
+  `?url=` and `?timestamp=`, builds the raw (`id_`) archive URL so the archive
+  serves the original bytes un-rewritten, fetches through the shared
+  retry/timeout helper, and relays the bytes with the upstream content type.
+- The snapshot URL is built with `buildArchiveUrl` from `src/core/archive-url`,
+  so the archive prefix stays defined in exactly one place. (api/ importing
+  core is allowed; core imports nothing from other layers.)
+- Reuses `api/http.ts` from task 10 for the timeout and retry policy, so the
+  two proxies behave identically on slow/failing upstreams.
+- Tests (`tests/api/snapshot.test.ts`, 7 cases): raw `id_` URL shape, User-Agent
+  header, timeout aborts the attempt, 400 for a missing url or malformed
+  timestamp with no network call, byte relay with the upstream content type,
+  and an outage mapped to HTTP 502.
+- Kiro features used: the `seance` spec (`design.md` §3 step 4 raw `id_` fetch,
+  §11 timeout/retry), `requirements.md` R9.1/R9.2, and `structure.md` (api/ has
+  no DOM/React; core is the single source of truth for the archive prefix).
+- Problems hit: none. 106 tests pass, typecheck clean.

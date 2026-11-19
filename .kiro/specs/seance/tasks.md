@@ -85,7 +85,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: with a mocked fetch, assert request shape, timeout aborts, retry
       on 429 then success, give-up after capped attempts.
 
-11. **Snapshot proxy (if needed).** Implement `api/snapshot.ts` to fetch
+11. [x] **Snapshot proxy (if needed).** Implement `api/snapshot.ts` to fetch
     archived HTML/assets with correct headers and the `id_` raw modifier, only
     where CORS or header control requires it. [D3 step 4, D11]
     - Tests: with mocked fetch, correct upstream URL and timeout behaviour.
