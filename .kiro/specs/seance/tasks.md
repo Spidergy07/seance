@@ -144,7 +144,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests/checks: layout stacks under the breakpoint; keyboard operable;
       `prefers-reduced-motion` respected.
 
-20. **Death certificate panel.** `src/ui/DeathCertificate.tsx`: last working
+20. [x] **Death certificate panel.** `src/ui/DeathCertificate.tsx`: last working
     capture date, recovery percent as number + meter, missing count linking to
     the list, selected-vs-last capture note. Copy follows `voice.md`. [R5.1–R5.4,
     R4.3, D6]

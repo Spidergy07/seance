@@ -462,3 +462,33 @@ was built, which Kiro features were used, and any problem hit.
   pipeline, so I removed the stylesheet-content assertions and kept the
   behavioural render tests.
 - Verified: 167 tests pass (3 new), typecheck and lint clean.
+
+## Task 20 — Death certificate panel
+
+- Implemented `src/ui/format.ts`: `formatCaptureDate(ts)` turns a 14-digit
+  Wayback timestamp into a plain absolute date ("3 March 2008", no leading-zero
+  day), with fixed month names so the output is deterministic and offline-
+  testable. A malformed timestamp is returned unchanged rather than guessed.
+- Implemented `src/ui/DeathCertificate.tsx` from a `RecoveryReport`:
+  - "Died on (last working capture)" with the plain date, or "No working
+    capture found" when there is none (R5.1).
+  - Recovery shown as a number and a `role="meter"` with `aria-valuenow/min/max`
+    and `aria-valuetext`, plus "2 of 4 assets recovered" (R5.2, R4.3).
+  - A missing-asset tally that links to the grouped list below (`#missing-
+    spirits`), grouped by kind via the pure `groupMissingByKind` (R5.3, R4.5).
+  - Unknown assets reported separately with "not counted as recovered" (R4.4,
+    honesty per R8.6).
+  - A "Showing the capture from …" note only when the selected capture differs
+    from the last working one (R5.4).
+- Colour carries status (candle amber for recovery, cold grey-blue for missing)
+  but never alone: every figure has text and the tally uses labelled dots.
+  Wired above the panes in `App`'s done phase.
+- Tests: `tests/ui/format.test.ts` (3 cases) and
+  `tests/ui/death-certificate.test.ts` (7 cases: date, percent + meter aria,
+  missing count + link + grouped URL, unknown reported separately, selected-vs-
+  last note, no-working-capture wording, and a clean 100% certificate with no
+  missing list).
+- Kiro features used: the `seance` spec (`requirements.md` R4.3/R4.4/R5.1–R5.4,
+  `design.md` §6), voice.md (themed + literal labels, absolute dates, honest
+  "unknown"), the pure core (`groupMissingByKind`).
+- Problem hit: none. 177 tests pass (10 new), typecheck and lint clean.

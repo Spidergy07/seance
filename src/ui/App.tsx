@@ -10,6 +10,7 @@ import { useCallback, useRef, useState } from 'react';
 import { UrlInput } from './UrlInput.js';
 import { RestoredPane } from './RestoredPane.js';
 import { ReaderPane } from './ReaderPane.js';
+import { DeathCertificate } from './DeathCertificate.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
@@ -121,8 +122,8 @@ export function App(props: AppProps) {
         )}
 
         {phase.status === 'done' && (
-          // The death certificate (task 20) sits above the panes.
           <section className="result" aria-label="Recovery result">
+            <DeathCertificate report={phase.view.report} />
             <div className="panes">
               {/* Reader is first in the DOM so it leads when the panes stack
                   on a narrow screen (R7.2). */}
