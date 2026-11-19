@@ -263,3 +263,32 @@ was built, which Kiro features were used, and any problem hit.
   R3.1/R3.4/R3.7-prep), `structure.md` (dom/ may use the DOM but defers every
   URL decision to core), and the fixtures layout.
 - Problems hit: none. 124 tests pass, typecheck and lint clean.
+
+## Task 14 — Asset status collection
+
+- Added a `CaptureLookup` domain type to `src/core/types.ts`: a batched lookup
+  from URLs to `Capture | null`, with the convention that an absent key means
+  "undetermined" (→ unknown). A pure signature; the network lives behind it.
+- Implemented `src/dom/asset-status.ts`: `resolveAssetStatuses(assets, lookup)`
+  turns the assets collected by `rewriteDocument` into `AssetResult[]`. A 200
+  capture → `recovered` with its raw archive URL; any other status or no
+  capture → `missing`; an undetermined URL → `unknown`, never recovered
+  (R4.2, R4.4, R8.6). The lookup is called once with the de-duplicated URL set
+  so implementations can batch.
+- Implemented `src/archive/capture-lookup.ts`: `createCaptureLookup(deps)`
+  builds a `CaptureLookup` over the CDX proxy with bounded concurrency. Working
+  captures map to the most recent 200 (`selectBest`); captures that were never
+  200 map to `null` (missing); a failed CDX call is left absent (unknown), so a
+  transient error is never reported as a confirmed miss.
+- Tests: `tests/dom/asset-status.test.ts` (2 cases: all four status branches
+  explicitly, plus the fixture page resolved to 11 recovered / 1 missing / 1
+  unknown) and `tests/archive/capture-lookup.test.ts` (2 cases: working vs
+  no-200 vs failed-lookup mapping, and the proxy-only/never-archive.org check).
+- Spec change: added `src/dom/asset-status.ts` and `src/archive/capture-lookup.ts`
+  to `structure.md`. The original map folded this into the rewriter/clients;
+  splitting the pure resolver from the network-backed lookup keeps the dom layer
+  free of network and the lookup injectable.
+- Kiro features used: the `seance` spec (`design.md` §3 step 6, `requirements.md`
+  R4.1/R4.2/R4.4/R8.6), `structure.md` (core holds the shared type; archive is
+  the only network layer; dom defers to injected lookups).
+- Problems hit: none. 128 tests pass, typecheck and lint clean.

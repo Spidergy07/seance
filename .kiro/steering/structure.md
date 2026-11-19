@@ -41,10 +41,12 @@ seance/
     archive/             # network boundary: talks to our CDX proxy only
       result.ts          # shared typed ClientResult/ClientError + mappers
       cdx-client.ts      # fetch CDX rows via the serverless function
+      capture-lookup.ts  # batched CaptureLookup over the CDX proxy
       snapshot-client.ts # fetch archived HTML/assets
 
     dom/                 # DOM-dependent rewriting (runs in browser + linkedom)
       rewrite-document.ts # walk a parsed DOM, apply url-rewriter to attrs
+      asset-status.ts     # resolve collected assets to recovered/missing/unknown
       reader.ts           # readability extraction for the reader pane
       flash.ts            # detect .swf, mount Ruffle player
 

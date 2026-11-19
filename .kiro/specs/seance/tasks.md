@@ -106,7 +106,7 @@ Legend: [R#] requirement id, [D#] design section.
       rewriting, no element references a host other than `web.archive.org`;
       fragments on in-page anchors preserved.
 
-14. **Asset status collection.** While rewriting, collect referenced assets and
+14. [x] **Asset status collection.** While rewriting, collect referenced assets and
     resolve each to `recovered`/`missing`/`unknown` via batched CDX lookups,
     producing `AssetResult[]`. [R4.1, R4.2, R4.4, D3 step 6]
     - Tests: fixture page with a mix of present/absent assets yields the

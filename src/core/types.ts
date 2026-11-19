@@ -59,3 +59,14 @@ export interface RecoveryReport {
   /** Whole number: recovered / total * 100. */
   recoveryPercent: number;
 }
+
+/**
+ * Resolve capture status for a batch of original URLs. A key mapped to a
+ * `Capture` means the archive has that capture; mapped to `null` means the
+ * archive has no capture (the asset is missing); an absent key means the
+ * status could not be determined (the asset is unknown, never counted as
+ * recovered). This is a pure signature: the network lives behind it.
+ */
+export type CaptureLookup = (
+  urls: readonly string[],
+) => Promise<ReadonlyMap<OriginalUrl, Capture | null>>;
