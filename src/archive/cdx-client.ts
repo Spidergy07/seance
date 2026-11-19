@@ -28,6 +28,11 @@ export interface ArchiveClientDeps {
    * lookups are cached, so a transient failure can still be retried.
    */
   cdxCache?: CdxCache;
+  /**
+   * The recovery's deadline signal (R8.9). When present it is passed to every
+   * fetch, so the overall deadline can abort an in-flight request.
+   */
+  signal?: AbortSignal;
 }
 
 /** The proxy's success body for CDX. */
@@ -59,11 +64,14 @@ export async function fetchCaptures(
 
   const endpoint = cdxEndpoint(originalUrl, deps.baseUrl ?? '');
 
+  const init: RequestInit = { headers: { accept: 'application/json' } };
+  if (deps.signal !== undefined) {
+    init.signal = deps.signal;
+  }
+
   let response: Response;
   try {
-    response = await deps.fetch(endpoint, {
-      headers: { accept: 'application/json' },
-    });
+    response = await deps.fetch(endpoint, init);
   } catch (error) {
     return err(errorFromThrow(error));
   }

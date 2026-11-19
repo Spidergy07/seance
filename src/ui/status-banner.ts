@@ -75,7 +75,7 @@ export function statusContent(status: BannerStatus): BannerContent {
         title: 'Still reaching through',
         detail: 'The Internet Archive is taking a while to respond.',
         nextStep: 'Seance will wait, then stop if it takes too long.',
-        retryable: false,
+        retryable: true,
       };
 
     case 'rate-limited':
@@ -86,7 +86,8 @@ export function statusContent(status: BannerStatus): BannerContent {
           status.retryInSeconds !== undefined
             ? `The Internet Archive is busy and asked us to slow down. Trying again in ${status.retryInSeconds} second${status.retryInSeconds === 1 ? '' : 's'}.`
             : 'The Internet Archive is busy and asked us to slow down. Waiting a moment, then trying again.',
-        retryable: false,
+        nextStep: 'You can try again now, or give the archive a moment first.',
+        retryable: true,
       };
 
     case 'timeout':

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildCdxRequestUrl,
+  createCdxMemoryCache,
   fetchCdxRows,
   handleCdxRequest,
 } from '../../api/cdx.js';
@@ -143,6 +144,7 @@ describe('handleCdxRequest', () => {
       request('http://example.com/'),
       deps(fetchImpl),
       fastOptions,
+      createCdxMemoryCache(),
     );
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ rows: SAMPLE_ROWS });
@@ -158,6 +160,7 @@ describe('handleCdxRequest', () => {
       request('http://example.com/'),
       deps(fetchImpl),
       fastOptions,
+      createCdxMemoryCache(),
     );
     expect(res.status).toBe(429);
     await expect(res.json()).resolves.toMatchObject({ error: 'rate-limited' });

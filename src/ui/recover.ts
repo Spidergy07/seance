@@ -47,6 +47,37 @@ export interface RecoverDeps {
    * lookup of the same URL makes no new archive request.
    */
   cdxCache?: CdxCache;
+  /** Overall recovery deadline in milliseconds (R8.9). Defaults to 20000. */
+  deadlineMs?: number;
+  /**
+   * Create the deadline handle for one recovery. Injected in tests; defaults to
+   * an `AbortController` aborted by a `setTimeout`.
+   */
+  createDeadline?: DeadlineFactory;
+}
+
+/** A recovery's deadline: a signal to abort fetches, and a timer to clear. */
+export interface DeadlineHandle {
+  signal: AbortSignal;
+  /** Clear the timer once the recovery settles, so it cannot fire late. */
+  cancel: () => void;
+}
+
+export type DeadlineFactory = (ms: number) => DeadlineHandle;
+
+/** The default overall deadline: the whole recovery finishes or stops here. */
+export const DEFAULT_DEADLINE_MS = 20000;
+
+/** Real deadline: abort the shared controller when the timer fires. */
+function defaultDeadline(ms: number): DeadlineHandle {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return {
+    signal: controller.signal,
+    cancel: () => {
+      clearTimeout(timer);
+    },
+  };
 }
 
 /** Options for a single recovery run. */
@@ -98,6 +129,28 @@ export async function recover(
     archiveDeps.cdxCache = deps.cdxCache;
   }
 
+  // One deadline for the whole recovery (R8.9): its signal aborts every archive
+  // fetch, so a slow or rate-limited archive cannot hold the UI open. The timer
+  // is always cleared in the `finally` below.
+  const deadline = (deps.createDeadline ?? defaultDeadline)(
+    deps.deadlineMs ?? DEFAULT_DEADLINE_MS,
+  );
+  archiveDeps.signal = deadline.signal;
+
+  try {
+    return await runRecovery(originalUrl, deps, archiveDeps, options);
+  } finally {
+    deadline.cancel();
+  }
+}
+
+/** The recovery steps, run under the deadline set up by `recover`. */
+async function runRecovery(
+  originalUrl: string,
+  deps: RecoverDeps,
+  archiveDeps: ArchiveClientDeps,
+  options: RecoverOptions,
+): Promise<RecoveryOutcome> {
   const captures = await fetchCaptures(originalUrl, archiveDeps);
   if (!captures.ok) {
     return { ok: false, kind: mapClientError(captures.error.kind), detail: captures.error.message };

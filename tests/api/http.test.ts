@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DEFAULT_RETRY_OPTIONS,
   UpstreamError,
   fetchWithRetry,
   parseRetryAfter,
@@ -151,5 +152,18 @@ describe('statusForUpstreamError', () => {
     expect(statusForUpstreamError(new UpstreamError('server-error', ''))).toBe(502);
     expect(statusForUpstreamError(new UpstreamError('network', ''))).toBe(502);
     expect(statusForUpstreamError(new UpstreamError('client-error', ''))).toBe(400);
+  });
+});
+
+describe('DEFAULT_RETRY_OPTIONS worst-case wait (R8.9)', () => {
+  it('bounds a single proxy request well under the ~20s recovery deadline', () => {
+    const o = DEFAULT_RETRY_OPTIONS;
+    // Worst case: every attempt times out, with a capped backoff between them.
+    const worst = o.maxAttempts * o.timeoutMs + (o.maxAttempts - 1) * o.maxDelayMs;
+    expect(worst).toBeLessThanOrEqual(20000);
+    // A sustained 429 must surface in a couple of seconds, not tens: few
+    // attempts and a short backoff ceiling.
+    expect(o.maxAttempts).toBeLessThanOrEqual(2);
+    expect(o.maxDelayMs).toBeLessThanOrEqual(2000);
   });
 });

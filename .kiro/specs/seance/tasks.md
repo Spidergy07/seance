@@ -265,7 +265,7 @@ pass after each.
       test asserts a multi-asset page makes ≤6 archive requests and a second
       recovery of the same page makes no new CDX request.
 
-33. [ ] **Bound the total wait and surface rate-limited/slow fast.** Give the
+33. [x] **Bound the total wait and surface rate-limited/slow fast.** Give the
     whole recovery one deadline (~20s) threaded as an `AbortSignal` into every
     archive fetch; on the deadline, abort and show the timeout state. Reduce the
     proxy's retry worst-case so a sustained 429 returns in a couple of seconds,

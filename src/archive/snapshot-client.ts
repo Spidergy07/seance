@@ -40,9 +40,14 @@ export async function fetchSnapshot(
 ): Promise<ClientResult<Snapshot>> {
   const endpoint = snapshotEndpoint(originalUrl, timestamp, deps.baseUrl ?? '');
 
+  const init: RequestInit = {};
+  if (deps.signal !== undefined) {
+    init.signal = deps.signal;
+  }
+
   let response: Response;
   try {
-    response = await deps.fetch(endpoint, {});
+    response = await deps.fetch(endpoint, init);
   } catch (error) {
     return err(errorFromThrow(error));
   }

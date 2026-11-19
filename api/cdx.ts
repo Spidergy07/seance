@@ -44,6 +44,44 @@ export function buildCdxRequestUrl(originalUrl: string): string {
 export type CdxRows = string[][];
 
 /**
+ * A short-lived in-memory cache of CDX rows, keyed by the queried original URL
+ * (R8.8). It lets the proxy answer a repeated query without a new upstream
+ * call, which matters under rate limiting. It is ephemeral and stores no user
+ * identity, so it does not breach R9.5. Entries expire after `ttlMs`.
+ */
+export interface CdxMemoryCache {
+  get(url: string): CdxRows | undefined;
+  set(url: string, rows: CdxRows): void;
+}
+
+/** Build a TTL cache. `now` is injectable so expiry is testable offline. */
+export function createCdxMemoryCache(
+  ttlMs = 300_000,
+  now: () => number = () => Date.now(),
+): CdxMemoryCache {
+  const store = new Map<string, { rows: CdxRows; expires: number }>();
+  return {
+    get(url) {
+      const entry = store.get(url);
+      if (entry === undefined) {
+        return undefined;
+      }
+      if (entry.expires <= now()) {
+        store.delete(url);
+        return undefined;
+      }
+      return entry.rows;
+    },
+    set(url, rows) {
+      store.set(url, { rows, expires: now() + ttlMs });
+    },
+  };
+}
+
+/** The proxy's process-wide cache, reused across warm invocations. */
+const defaultCdxCache = createCdxMemoryCache();
+
+/**
  * Query the CDX API for captures of `originalUrl` and return the parsed rows.
  * Throws `UpstreamError` on timeout, rate limiting, or an upstream failure.
  */
@@ -118,6 +156,7 @@ export async function handleCdxRequest(
   request: Request,
   deps: HttpDeps = defaultHttpDeps(),
   options: RetryOptions = DEFAULT_RETRY_OPTIONS,
+  cache: CdxMemoryCache = defaultCdxCache,
 ): Promise<Response> {
   const requestUrl = new URL(request.url);
   const originalUrl = validateOriginalUrl(requestUrl.searchParams.get('url'));
@@ -133,8 +172,14 @@ export async function handleCdxRequest(
     );
   }
 
+  const cached = cache.get(originalUrl);
+  if (cached !== undefined) {
+    return jsonResponse({ rows: cached }, 200);
+  }
+
   try {
     const rows = await fetchCdxRows(originalUrl, deps, options);
+    cache.set(originalUrl, rows);
     return jsonResponse({ rows }, 200);
   } catch (error) {
     if (error instanceof UpstreamError) {

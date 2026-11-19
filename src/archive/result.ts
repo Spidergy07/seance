@@ -70,8 +70,26 @@ export async function errorFromResponse(response: Response): Promise<ClientError
   }
 }
 
-/** Map a thrown fetch failure (offline, DNS, CORS) to a `ClientError`. */
+/** True for an abort raised by a deadline/timeout `AbortController`. */
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AbortError'
+  );
+}
+
+/** Map a thrown fetch failure to a `ClientError`. An abort from the recovery
+ *  deadline becomes `timeout`; everything else (offline, DNS, CORS) is a
+ *  network error. */
 export function errorFromThrow(error: unknown): ClientError {
+  if (isAbortError(error)) {
+    return {
+      kind: 'timeout',
+      message: 'The archive did not respond before we stopped waiting.',
+    };
+  }
   const detail = String((error as { message?: unknown })?.message ?? error);
   return {
     kind: 'network',

@@ -52,10 +52,13 @@ export interface RetryOptions {
 }
 
 export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
-  timeoutMs: 8000,
-  maxAttempts: 3,
+  // Bounded so one proxy request cannot hold the client's ~20s recovery
+  // deadline open, and a sustained 429 surfaces in a couple of seconds, not
+  // tens (R8.9). Worst case: 2 × 6s + 1 × 2s backoff = 14s.
+  timeoutMs: 6000,
+  maxAttempts: 2,
   baseDelayMs: 500,
-  maxDelayMs: 8000,
+  maxDelayMs: 2000,
 };
 
 export function defaultHttpDeps(): HttpDeps {

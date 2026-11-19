@@ -839,3 +839,44 @@ was built, which Kiro features were used, and any problem hit.
   `tests/ui/recover-traffic.test.ts` (≤6 requests for a 13-asset page; a second
   recovery makes no new CDX request).
 - Verified: full suite 241 passing; typecheck and lint clean.
+
+
+## Task 33 — Bound the total wait, surface rate-limited/slow fast (fix round)
+
+- Bug: `curl /api/cdx` took ~16s to report a 429, and the app spun for 75+
+  seconds on one static line and never showed the rate-limited banner.
+- Root causes:
+  - The proxy's default retry (3 attempts, up to 8s backoff each) meant a
+    sustained 429 took ~16s to surface.
+  - The browser made no overall time bound: a slow/aborted asset phase could
+    keep the UI "running" indefinitely, and asset-lookup failures were swallowed
+    to `unknown`, so the rate-limit never reached a banner.
+- Fix:
+  - Overall deadline (R8.9): `recover` creates one `DeadlineHandle` (default 20s,
+    injectable for tests) and threads its `AbortSignal` into every archive fetch
+    via `ArchiveClientDeps.signal`. The timer is always cleared in a `finally`.
+    An abort during the main CDX or snapshot fails the recovery with `timeout`;
+    an abort during the asset phase just leaves the rest `unknown` and renders
+    the partial page (R8.5).
+  - Abort mapping: `errorFromThrow` now maps an `AbortError` to the `timeout`
+    client error (was `network`), so the shell shows the timeout state.
+  - Proxy retry worst-case cut (`DEFAULT_RETRY_OPTIONS`): 6s timeout, 2 attempts,
+    ≤2s backoff ceiling (and `Retry-After` capped to it). Worst case 14s; a
+    sustained 429 surfaces in ~2s. Existing proxy tests pass their own fast
+    options, so they were unaffected.
+  - Proxy CDX cache (R8.8, proxy side): `createCdxMemoryCache` (TTL, injectable
+    clock); `handleCdxRequest` serves a repeated URL from it and caches only
+    successful upstreams. Isolated the existing handler tests with a fresh cache
+    each so the process-wide default does not couple them.
+  - Retry controls: the `rate-limited`, `timeout`, `outage`, and `network`
+    banners are now all retryable, so every archive-side failure offers "Try
+    again" (voice.md: the rate-limited copy now names the next step).
+- Spec: requirements R8.9; design §3.1 (deadline) and §11 (timeout/retry
+  policy); tasks.md task 33.
+- Tests (offline, written first): `tests/archive/deadline-signal.test.ts`
+  (signal passed to fetch; abort → timeout), `tests/ui/recover-deadline.test.ts`
+  (aborted deadline → timeout, timer cleared, no hang), `tests/api/cdx-cache.test.ts`
+  (proxy cache hit; errors not cached), a `DEFAULT_RETRY_OPTIONS` worst-case
+  bound in `tests/api/http.test.ts`, and retryable assertions in
+  `tests/ui/status-banner.test.ts`.
+- Verified: full suite 250 passing; typecheck and lint clean.

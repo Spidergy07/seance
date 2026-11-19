@@ -98,4 +98,17 @@ describe('StatusBanner messages (R8.1–R8.6)', () => {
       'Try again',
     );
   });
+
+  it('offers a retry control on every archive-side failure (R8.9)', () => {
+    const retry = () => {};
+    for (const status of [
+      { kind: 'rate-limited' },
+      { kind: 'timeout' },
+      { kind: 'outage' },
+      { kind: 'network' },
+    ] as const) {
+      expect(statusContent(status).retryable).toBe(true);
+      expect(render(status, retry)).toContain('Try again');
+    }
+  });
 });
