@@ -65,3 +65,22 @@ was built, which Kiro features were used, and any problem hit.
 - Kiro features used: `design.md` §4.2/§4.4 (prefix format, modifier),
   `requirements.md` R3.1, spec task done-criteria for the round-trip test.
 - Problems hit: none. 22 tests pass (incl. earlier), typecheck and lint clean.
+
+## Task 5 — URL rewriter (example tests)
+
+- Implemented `src/core/url-rewriter.ts` `rewrite(ref, ctx)` following
+  design.md §4.2: trim, pass through empty/pure-fragment/non-resolvable
+  schemes, detect already-archived input and rewrite from its embedded
+  original, resolve with the WHATWG `URL` API against `pageOriginalUrl`, then
+  build the archive URL. `raw` defaults to true.
+- Tests (`tests/core/url-rewriter.test.ts`, 18 cases): absolute, relative,
+  root-relative, protocol-relative, query+fragment, empty, pure fragment,
+  `mailto:`/`tel:`/`javascript:`/`data:`/`about:`/`blob:` pass-through,
+  case-insensitive scheme detection, already-archived re-pointing, an
+  idempotence spot-check, and the raw-flag on/off/default behaviour.
+- Kiro features used: `design.md` §4.2 algorithm, `requirements.md` R3.1–R3.6.
+- Design decision worth noting: the resolved URL's fragment and query ride
+  inside the embedded original URL (Wayback's own scheme), so no separate
+  "re-attach fragment" step is needed; design.md §4.2 step 7 is satisfied by
+  construction.
+- Problems hit: none. 40 tests pass, typecheck and lint clean.

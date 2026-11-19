@@ -36,7 +36,7 @@ Legend: [R#] requirement id, [D#] design section.
      `parse(build(u, ts)) === { u, ts }`; prefix shape is exactly
      `https://web.archive.org/web/<ts>[id_]/`.
 
-5. **URL rewriter — example tests first.** Implement
+5. [x] **URL rewriter — example tests first.** Implement
    `src/core/url-rewriter.ts` `rewrite(ref, ctx)` per [D4.2]. Write
    example-based tests (`tests/core/url-rewriter.test.ts`) covering: absolute
    url, relative path, root-relative path, protocol-relative, pure fragment,
