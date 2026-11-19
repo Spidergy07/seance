@@ -1,0 +1,7 @@
+[
+  ["urlkey", "timestamp", "original", "mimetype", "statuscode", "digest", "length"],
+  ["com,example)/", "20050101000000", "http://example.com/", "text/html", "200", "AAAA", "100"],
+  ["com,example)/", "20080303120000", "http://example.com/", "text/html", "200", "BBBB", "120"],
+  ["com,example)/", "20090101000000", "http://example.com/", "text/html", "404", "CCCC", "90"],
+  ["com,example)/", "20080303120000", "http://example.com/", "text/html", "200", "BBBB", "120"]
+]

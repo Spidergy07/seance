@@ -64,7 +64,7 @@ Legend: [R#] requirement id, [D#] design section.
      `url(...)` keep their quoting; property test that descriptor/quote shape is
      preserved.
 
-8. **Capture selection.** Implement `src/core/capture-select.ts`:
+8. [x] **Capture selection.** Implement `src/core/capture-select.ts`:
    `selectBest`, `lastWorking`, `byDate`, and the no-200 fallback. [R2.2–R2.5,
    D5]
    - Tests (`tests/core/capture-select.test.ts`) with CDX fixtures: picks most

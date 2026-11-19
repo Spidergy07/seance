@@ -124,3 +124,19 @@ was built, which Kiro features were used, and any problem hit.
   a `srcset` candidate is not supported, because commas split candidates. Such
   URLs are rare in srcset.
 - Problems hit: none. 57 tests pass, typecheck and lint clean.
+
+## Task 8 — Capture selection
+
+- Implemented `src/core/capture-select.ts`: `parseCdxRows` (normalises raw CDX
+  rows to `Capture`s, skips the header, maps non-numeric status to 0),
+  `selectBest` (most recent status-200), `lastWorking` (same, for the
+  certificate), `byDate` (newest-first, de-duplicated by timestamp), and
+  `selectCapture` (bundles best + the no-200 fallback).
+- Added recorded CDX fixtures `tests/fixtures/cdx/mixed.json` and `no-200.json`;
+  tests (`tests/core/capture-select.test.ts`, 11 cases) cover: header skipped,
+  revisit status → 0, picks most recent 200 (ignores a newer 404), null when no
+  200, fallback to most recent non-200, and byDate sort/dedup.
+- Kiro features used: `design.md` §5, `requirements.md` R2.2–R2.5, and the
+  fixtures directory from `structure.md`. Timestamps are 14-digit fixed width,
+  so lexicographic string compare is correct for ordering.
+- Problems hit: none. 68 tests pass, typecheck and lint clean.
