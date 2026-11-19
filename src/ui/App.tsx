@@ -9,6 +9,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { UrlInput } from './UrlInput.js';
 import { RestoredPane } from './RestoredPane.js';
+import { ReaderPane } from './ReaderPane.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
@@ -120,14 +121,18 @@ export function App(props: AppProps) {
         )}
 
         {phase.status === 'done' && (
-          // The reader pane (task 19) and death certificate (task 20) join the
-          // restored pane in the two-pane layout here.
+          // The death certificate (task 20) sits above the panes.
           <section className="result" aria-label="Recovery result">
-            <RestoredPane
-              html={phase.view.restoredHtml}
-              pageOriginalUrl={phase.view.pageOriginalUrl}
-              onNavigate={start}
-            />
+            <div className="panes">
+              {/* Reader is first in the DOM so it leads when the panes stack
+                  on a narrow screen (R7.2). */}
+              <ReaderPane reader={phase.view.reader} />
+              <RestoredPane
+                html={phase.view.restoredHtml}
+                pageOriginalUrl={phase.view.pageOriginalUrl}
+                onNavigate={start}
+              />
+            </div>
           </section>
         )}
       </main>

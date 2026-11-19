@@ -433,3 +433,32 @@ was built, which Kiro features were used, and any problem hit.
   `referrerPolicy`) in static markup rather than the DOM's lowercase form, so
   the attribute-name assertions now compare case-insensitively.
 - Verified: 164 tests pass (10 new), typecheck and lint clean.
+
+## Task 19 — Reader pane + responsive layout
+
+- Implemented `src/ui/ReaderPane.tsx`: labelled "Reader — a clean, readable
+  version" (voice.md themed + literal). On a found article it renders the title
+  and the sanitised Readability content (asset URLs already pointed at the
+  archive by `extractReader`). On no article it shows the plain notice and
+  leaves the restored page standing (R7.3).
+- Layout in `theme.css`: `.panes` is one column by default with the reader
+  first in the DOM, so it leads when the panes stack on a narrow screen; above
+  `60rem` it becomes two columns (R7.2). `App`'s done phase now renders
+  `ReaderPane` then `RestoredPane` inside `.panes`. The input row also goes
+  single-column below `30rem` so it fits a 375px phone.
+- Accessibility / motion: each pane is a labelled `<section>`, headings use a
+  real hierarchy (h1 board → h2 pane → h3 article), and the global
+  `prefers-reduced-motion` block (already in the theme) disables the loading
+  pulse and transitions (N4).
+- Tests: `tests/ui/reader-pane.test.ts` (3 cases: title + body render, empty
+  title omitted, the no-article notice). The breakpoint and reduced-motion
+  rules are CSS, verified by reading `theme.css` rather than asserted in a Node
+  test — a `?raw` import of the stylesheet comes back empty under vite's test
+  transform, so a string assertion there would be false comfort.
+- Kiro features used: the `seance` spec (`requirements.md` R7.2/R7.3, N4,
+  `design.md` §10), voice.md (pane labels, plain no-article copy),
+  `structure.md` (reader pane consumes the dom-layer `ReaderResult`).
+- Problem hit: CSS `?raw` imports resolve to empty strings in the vitest/vite
+  pipeline, so I removed the stylesheet-content assertions and kept the
+  behavioural render tests.
+- Verified: 167 tests pass (3 new), typecheck and lint clean.

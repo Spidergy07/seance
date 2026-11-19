@@ -139,7 +139,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: iframe carries the sandbox attribute; internal-link message
       triggers a new recovery for the link's original URL.
 
-19. **Reader pane + responsive layout.** `src/ui/ReaderPane.tsx` and the
+19. [x] **Reader pane + responsive layout.** `src/ui/ReaderPane.tsx` and the
     two-pane/stacked layout (reader first on narrow screens). [R7.2, N4]
     - Tests/checks: layout stacks under the breakpoint; keyboard operable;
       `prefers-reduced-motion` respected.

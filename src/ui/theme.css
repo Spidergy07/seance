@@ -344,6 +344,21 @@ a {
   gap: var(--s-5);
 }
 
+/* Mobile-first: one column, reader leading (it is first in the DOM). The panes
+ * sit side by side only once there is room (R7.2). */
+.panes {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 60rem) {
+  .panes {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .pane {
   background: var(--bg-raised);
   border: 1px solid var(--panel-edge);
@@ -378,6 +393,42 @@ a {
   min-height: 60vh;
   border: 0;
   background: #fff; /* archived pages assume a light canvas */
+}
+
+/* --- Reader --------------------------------------------------------------- */
+.reader {
+  padding: var(--s-5);
+  overflow-wrap: break-word;
+}
+.reader__title {
+  font-size: 1.5rem;
+  margin-bottom: var(--s-4);
+}
+.reader__body {
+  color: var(--ink);
+  line-height: 1.7;
+}
+.reader__body :is(p, ul, ol, blockquote, pre, figure) {
+  margin: 0 0 var(--s-4);
+}
+.reader__body :is(h1, h2, h3, h4) {
+  margin: var(--s-5) 0 var(--s-3);
+  line-height: 1.25;
+}
+.reader__body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+.reader__body a {
+  color: var(--candle);
+}
+.reader--empty {
+  padding: var(--s-5);
+  color: var(--ink-dim);
+}
+.reader--empty p {
+  margin: 0;
 }
 
 /* --- Placeholder (temporary; replaced by panes/banner in later tasks) ---- */
