@@ -45,6 +45,11 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
   const unknownCount = assets.filter((a) => a.status === 'unknown').length;
   const missingByKind = groupMissingByKind(assets);
 
+  // A recovery that checked no separate files has no meaningful percentage: a
+  // percentage of nothing reads as a false "100%". Say so plainly instead
+  // (R5.6).
+  const noAssets = assets.length === 0;
+
   const selectedDiffers =
     lastWorking !== null &&
     selected !== null &&
@@ -108,73 +113,83 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
         </dl>
       )}
 
-      <div className="recovery">
-        <div className="recovery__top">
-          <span className="recovery__label">Recovery</span>
-          <span className="recovery__percent">{recoveryPercent}%</span>
-        </div>
-        <div
-          className="meter"
-          role="meter"
-          aria-label="Share of referenced assets recovered from the archive"
-          aria-valuenow={recoveryPercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuetext={`${recoveryPercent}% recovered`}
-        >
-          <span className="meter__fill" style={{ width: `${recoveryPercent}%` }} />
-        </div>
-        <p className="recovery__count">
-          {recoveredCount} of {totalCount} assets recovered from the Internet
-          Archive.
+      {noAssets ? (
+        <p className="recovery__none" role="note">
+          This page had no separate images, styles, or files to recover. Only
+          the page itself was saved.
         </p>
-      </div>
+      ) : (
+        <>
+          <div className="recovery">
+            <div className="recovery__top">
+              <span className="recovery__label">Recovery</span>
+              <span className="recovery__percent">{recoveryPercent}%</span>
+            </div>
+            <div
+              className="meter"
+              role="meter"
+              aria-label="Share of referenced assets recovered from the archive"
+              aria-valuenow={recoveryPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuetext={`${recoveryPercent}% recovered`}
+            >
+              <span className="meter__fill" style={{ width: `${recoveryPercent}%` }} />
+            </div>
+            <p className="recovery__count">
+              {recoveredCount} of {totalCount} assets recovered from the Internet
+              Archive.
+            </p>
+          </div>
 
-      <ul className="tally" aria-label="Asset tally">
-        <li className="tally__item tally__item--missing">
-          {missingCount > 0 ? (
-            <a href={`#${MISSING_LIST_ID}`}>
-              {missingCount} missing {missingCount === 1 ? 'spirit' : 'spirits'}{' '}
-              (assets with no saved copy)
-            </a>
-          ) : (
-            <span>0 missing spirits (assets with no saved copy)</span>
+          <ul className="tally" aria-label="Asset tally">
+            <li className="tally__item tally__item--missing">
+              {missingCount > 0 ? (
+                <a href={`#${MISSING_LIST_ID}`}>
+                  {missingCount} missing{' '}
+                  {missingCount === 1 ? 'spirit' : 'spirits'} (assets with no
+                  saved copy)
+                </a>
+              ) : (
+                <span>0 missing spirits (assets with no saved copy)</span>
+              )}
+            </li>
+            {unknownCount > 0 && (
+              <li className="tally__item tally__item--unknown">
+                {unknownCount} unknown ({unknownCount === 1 ? 'its' : 'their'}{' '}
+                status could not be checked; not counted as recovered)
+              </li>
+            )}
+          </ul>
+
+          {missingCount > 0 && (
+            <section
+              id={MISSING_LIST_ID}
+              className="missing"
+              aria-label="Missing assets, grouped by type"
+            >
+              <h3 className="missing__title">Missing spirits</h3>
+              {(Object.keys(missingByKind) as AssetKind[]).map((kind) => {
+                const kindAssets = missingByKind[kind];
+                if (kindAssets === undefined || kindAssets.length === 0) {
+                  return null;
+                }
+                return (
+                  <div className="missing__group" key={kind}>
+                    <h4 className="missing__kind">
+                      {KIND_LABELS[kind]} ({kindAssets.length})
+                    </h4>
+                    <ul className="missing__urls">
+                      {kindAssets.map((asset) => (
+                        <li key={asset.originalUrl}>{asset.originalUrl}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </section>
           )}
-        </li>
-        {unknownCount > 0 && (
-          <li className="tally__item tally__item--unknown">
-            {unknownCount} unknown ({unknownCount === 1 ? 'its' : 'their'} status
-            could not be checked; not counted as recovered)
-          </li>
-        )}
-      </ul>
-
-      {missingCount > 0 && (
-        <section
-          id={MISSING_LIST_ID}
-          className="missing"
-          aria-label="Missing assets, grouped by type"
-        >
-          <h3 className="missing__title">Missing spirits</h3>
-          {(Object.keys(missingByKind) as AssetKind[]).map((kind) => {
-            const assets = missingByKind[kind];
-            if (assets === undefined || assets.length === 0) {
-              return null;
-            }
-            return (
-              <div className="missing__group" key={kind}>
-                <h4 className="missing__kind">
-                  {KIND_LABELS[kind]} ({assets.length})
-                </h4>
-                <ul className="missing__urls">
-                  {assets.map((asset) => (
-                    <li key={asset.originalUrl}>{asset.originalUrl}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </section>
+        </>
       )}
     </section>
   );

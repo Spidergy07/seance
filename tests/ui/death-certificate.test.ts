@@ -77,14 +77,37 @@ describe('DeathCertificate', () => {
     const html = render({
       selectedCapture: capture('20080303120000'),
       lastWorkingCapture: capture('20080303120000'),
-      assets: [],
-      recoveredCount: 0,
-      totalCount: 0,
+      assets: [
+        { originalUrl: 'http://oldsite.example/a.css', kind: 'stylesheet', status: 'recovered', archiveUrl: 'x' },
+        { originalUrl: 'http://oldsite.example/b.jpg', kind: 'image', status: 'recovered', archiveUrl: 'x' },
+      ],
+      recoveredCount: 2,
+      totalCount: 2,
       recoveryPercent: 100,
     });
     expect(html).toContain('100%');
     expect(html).toContain('0 missing');
     expect(html).not.toContain('id="missing-spirits"');
+  });
+
+  it('shows no percent or meter when the page had no separate assets (R5.6)', () => {
+    const html = render({
+      selectedCapture: capture('20080303120000'),
+      lastWorkingCapture: capture('20080303120000'),
+      assets: [],
+      recoveredCount: 0,
+      totalCount: 0,
+      recoveryPercent: 100,
+    });
+    // A percentage of nothing is meaningless, so it is not shown.
+    expect(html).not.toContain('role="meter"');
+    expect(html).not.toContain('100%');
+    expect(html).not.toContain('assets recovered');
+    expect(html).not.toContain('missing spirits');
+    // Instead, a plain statement that there were no separate files.
+    expect(html).toContain('no separate images, styles, or files to recover');
+    // The last-working date is still shown.
+    expect(html).toContain('3 March 2008');
   });
 
   // Task 37: a render error from this component blanked the result while

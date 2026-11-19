@@ -1325,3 +1325,20 @@ test first where testable; full suite + typecheck + lint green after each.
   one-shot CDX/snapshot requests to establish the digest timeline.
 - `demo-urls.md` updated to 12 April 2006 and the real behaviour.
 - Verified: 324 tests pass (+12), typecheck and lint clean.
+
+## Task 52 — No percentage for a page with no assets
+
+- Problem (browser re-test): a page that referenced no separate files showed
+  "0 of 0 assets recovered" and "Recovery 100%" with a full meter, which reads
+  as a false success.
+- Fix (R5.6, design §6): `DeathCertificate` now checks `assets.length === 0`
+  and, in that case, drops the percent, the meter, the tally, and the missing
+  list, and shows the plain line "This page had no separate images, styles, or
+  files to recover. Only the page itself was saved." The last-working date and
+  the rest of the certificate are unchanged. A page with real assets still
+  shows the meter and percent.
+- Kiro features used: spec-first (R5.6), test-first (repurposed the former
+  empty-assets "clean certificate" test to use real recovered assets, and added
+  an R5.6 test asserting no `role="meter"`/percent and the plain no-assets line
+  while the date still shows), voice.md (plain, honest, no hype).
+- Verified: 325 tests pass, typecheck and lint clean.

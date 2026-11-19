@@ -498,7 +498,7 @@ one commit per task; tests and typecheck pass after each.
       with a different digest; `recover` shows the real capture and dates it when
       the newest 200 is a stub. Update `demo-urls.md` to match.
 
-52. [ ] **No percentage for a page with no assets.** With zero referenced assets
+52. [x] **No percentage for a page with no assets.** With zero referenced assets
     the certificate showed "0 of 0 assets recovered" and "Recovery 100%" with a
     full meter, which reads as a false success. When the recovery checked no
     separate assets, drop the percentage and meter and say plainly the page had
