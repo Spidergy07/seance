@@ -573,14 +573,69 @@ a {
   margin: 0;
 }
 
-/* --- Placeholder (temporary; replaced by panes/banner in later tasks) ---- */
-.placeholder {
+/* --- Status banner -------------------------------------------------------- */
+.banner {
   max-width: 48rem;
   margin: 0 auto;
   padding: var(--s-5);
-  background: var(--bg-raised);
   border: 1px solid var(--panel-edge);
+  border-left-width: 3px;
   border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.banner__title {
+  font-size: 1.3rem;
+  margin-bottom: var(--s-2);
+}
+.banner__detail {
+  margin: 0;
+  color: var(--ink);
+}
+.banner__next {
+  margin: var(--s-3) 0 0;
+  color: var(--ink-dim);
+  font-size: 0.92rem;
+}
+.banner__retry {
+  margin-top: var(--s-4);
+  padding: var(--s-2) var(--s-4);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--panel-edge-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.banner__retry:hover {
+  border-color: var(--candle);
+  color: var(--candle);
+}
+
+/* Tone carries colour, but the title and detail always carry the meaning. */
+.banner--info {
+  border-left-color: var(--cold);
+}
+.banner--info .banner__title {
+  color: var(--cold);
+}
+.banner--warn {
+  border-left-color: var(--candle);
+}
+.banner--warn .banner__title {
+  color: var(--candle);
+}
+.banner--error {
+  border-left-color: var(--ember);
+}
+.banner--error .banner__title {
+  color: var(--ember);
+}
+.banner--partial {
+  border-left-color: var(--candle);
+}
+.banner--partial .banner__title {
+  color: var(--candle);
 }
 
 /* --- Credits -------------------------------------------------------------- */

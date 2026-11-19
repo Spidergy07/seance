@@ -492,3 +492,34 @@ was built, which Kiro features were used, and any problem hit.
   `design.md` §6), voice.md (themed + literal labels, absolute dates, honest
   "unknown"), the pure core (`groupMissingByKind`).
 - Problem hit: none. 177 tests pass (10 new), typecheck and lint clean.
+
+## Task 21 — Status banners for all error states
+
+- Implemented `src/ui/status-banner.ts` (pure): `statusContent(status)` returns
+  a `{ tone, title, detail, nextStep?, retryable }` for every design.md §11
+  state — invalid URL, no captures, no working capture (with the best-effort
+  date), slow, rate limited (with a countdown), timeout, outage, network,
+  partial (recovered vs missing counts), Flash missing, and Ruffle failure. The
+  copy is lifted from voice.md: what happened, why, and what to do next, never
+  blaming the visitor.
+- Implemented `src/ui/StatusBanner.tsx`: renders that content with a tone
+  colour on the left border, `role="alert"`/`aria-live="assertive"` for error
+  tones and `role="status"`/polite otherwise, and a "Try again" control only
+  for retryable states. Colour never carries meaning alone; the title and
+  detail always state it.
+- Wired into `App`: the error phase renders a banner mapped from the recovery
+  error kind (retry re-runs the same URL); the done phase shows a partial
+  banner above the certificate whenever recovery is below 100%. Removed the
+  temporary `.placeholder` screen and its style.
+- Tests: `tests/ui/status-banner.test.ts` (11 cases): every §11 state has a
+  non-empty title and detail, plus the specific wording and next step for no
+  captures, no working capture + fallback date, rate-limit countdown, outage
+  (alert + "not your address" + retry), partial counts, Flash missing, Ruffle
+  failure, and that the retry control appears only for retryable states.
+- Also ran `npm run build`: the full UI compiles to a static bundle
+  (index.html + one CSS + one JS chunk), confirming the browser-only pieces
+  (`DOMParser`/`XMLSerializer` in `recover.ts`, the CSS import) are sound.
+- Kiro features used: the `seance` spec (`requirements.md` R8.1–R8.6, R1.2,
+  R6.3, R6.5, R2.3, `design.md` §11), voice.md (every example error string),
+  `structure.md` (banner copy kept pure and separate from the component).
+- Problem hit: none. 186 tests pass (9 new), typecheck, lint, and build clean.

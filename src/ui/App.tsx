@@ -11,7 +11,10 @@ import { UrlInput } from './UrlInput.js';
 import { RestoredPane } from './RestoredPane.js';
 import { ReaderPane } from './ReaderPane.js';
 import { DeathCertificate } from './DeathCertificate.js';
+import { StatusBanner } from './StatusBanner.js';
 import { browserRecoverDeps, recover } from './recover.js';
+import { formatCaptureDate } from './format.js';
+import type { BannerStatus } from './status-banner.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
 export interface AppProps {
@@ -33,6 +36,34 @@ function errorPhase(url: string, outcome: Extract<RecoveryOutcome, { ok: false }
     phase.fallbackCapture = outcome.fallbackCapture;
   }
   return phase;
+}
+
+/** Map an error phase onto the banner's status (its copy lives in that module). */
+function errorBannerStatus(phase: Extract<AppPhase, { status: 'error' }>): BannerStatus {
+  switch (phase.kind) {
+    case 'invalid-url':
+      return {
+        kind: 'invalid-url',
+        message: phase.detail ?? 'This is not a complete web address.',
+      };
+    case 'no-captures':
+      return { kind: 'no-captures', url: phase.url };
+    case 'no-working-capture': {
+      const status: BannerStatus = { kind: 'no-working-capture', url: phase.url };
+      if (phase.fallbackCapture !== undefined) {
+        status.fallbackDate = formatCaptureDate(phase.fallbackCapture.timestamp);
+      }
+      return status;
+    }
+    case 'rate-limited':
+      return { kind: 'rate-limited' };
+    case 'timeout':
+      return { kind: 'timeout' };
+    case 'network':
+      return { kind: 'network' };
+    case 'outage':
+      return { kind: 'outage' };
+  }
 }
 
 export function App(props: AppProps) {
@@ -114,15 +145,26 @@ export function App(props: AppProps) {
         )}
 
         {phase.status === 'error' && (
-          // Replaced by the StatusBanner component in task 21.
-          <section className="placeholder" role="alert">
-            <p>Recovery stopped: {phase.kind}.</p>
-            {phase.detail && <p>{phase.detail}</p>}
-          </section>
+          <StatusBanner
+            status={errorBannerStatus(phase)}
+            onRetry={() => start(phase.url)}
+          />
         )}
 
         {phase.status === 'done' && (
           <section className="result" aria-label="Recovery result">
+            {phase.view.report.recoveryPercent < 100 && (
+              <StatusBanner
+                status={{
+                  kind: 'partial',
+                  recoveredCount: phase.view.report.recoveredCount,
+                  missingCount: phase.view.report.assets.filter(
+                    (a) => a.status === 'missing',
+                  ).length,
+                  totalCount: phase.view.report.totalCount,
+                }}
+              />
+            )}
             <DeathCertificate report={phase.view.report} />
             <div className="panes">
               {/* Reader is first in the DOM so it leads when the panes stack

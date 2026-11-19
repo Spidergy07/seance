@@ -151,7 +151,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: renders the certificate from a `RecoveryReport` fixture; shows
       counts and percent; dates formatted plainly.
 
-21. **Status banners for all error states.** `src/ui/StatusBanner.tsx` covering
+21. [x] **Status banners for all error states.** `src/ui/StatusBanner.tsx` covering
     every row in [D11]: invalid URL, no captures, no working capture, slow,
     rate limited, outage, partial, Flash missing, Ruffle failure. Copy follows
     `voice.md`. [R8.1–R8.6, R1.2]
