@@ -8,14 +8,27 @@
     "grep",
     "read",
     "shell",
-    "write"
+    "write",
+    "@wayback"
   ],
   "allowedTools": [
     "read",
     "grep",
     "glob",
-    "code"
+    "code",
+    "@wayback/cdx_search",
+    "@wayback/check_capture",
+    "@wayback/find_swf"
   ],
+  "mcpServers": {
+    "wayback": {
+      "command": "npm",
+      "args": ["--prefix", "tools/wayback-mcp", "run", "start"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": ["cdx_search", "check_capture", "find_swf"]
+    }
+  },
   "toolsSettings": {
     "write": {
       "allowedPaths": [

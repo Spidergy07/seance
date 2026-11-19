@@ -39,3 +39,32 @@ Registered for Kiro in `.kiro/settings/mcp.json`. The tool logic
 (`src/wayback.ts`) is covered by offline tests with a mocked fetch under the
 project's root vitest suite (`tests/tools/wayback.test.ts`); no test touches the
 live archive.
+
+## Registering with Kiro
+
+The server is listed in the `seance` agent config
+(`.kiro/agents/seance.json`, under `mcpServers`). For a workspace-wide
+registration, copy `tools/wayback-mcp/mcp.json` to `.kiro/settings/mcp.json`:
+
+```bash
+cp tools/wayback-mcp/mcp.json .kiro/settings/mcp.json
+```
+
+(The template lives here because `.kiro/settings/` is write-protected in this
+workspace's agent sandbox; the content is identical.) It launches the server
+with the tool's own local `tsx`:
+
+```json
+{
+  "mcpServers": {
+    "wayback": {
+      "command": "npm",
+      "args": ["--prefix", "tools/wayback-mcp", "run", "start"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": ["cdx_search", "check_capture", "find_swf"]
+    }
+  }
+}
+```
+
