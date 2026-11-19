@@ -68,6 +68,18 @@ load from the archive, so that it looks and works like the original.
 - R3.8 WHEN the user activates an internal link in the restored page, THE
   SYSTEM SHALL re-run the recovery flow for that link's original URL rather
   than navigating the live web.
+- R3.9 THE SYSTEM SHALL keep the restored view on the restored document: it
+  SHALL neutralise `<meta http-equiv="refresh">` so the page does not navigate
+  itself away, and SHALL present the refresh target as a link that re-runs
+  recovery instead. THE SYSTEM SHALL block top-level and self navigation and
+  form submission from inside the restored frame from escaping Seance to the
+  live web.
+- R3.10 THE SYSTEM SHALL rewrite `<frame src>` in archived framesets to the
+  archive prefix, like other resource references, so a frameset page renders
+  from the archive rather than showing blank frames (R3.4).
+- R3.11 THE SYSTEM SHALL remove any archived `<meta http-equiv="Content-Security-Policy">`
+  so the original page's policy cannot stop archive-served assets or Seance's
+  own in-frame scripts from loading.
 
 ## R4 — Report what could not be recovered
 **User story:** As a visitor, I want to know exactly what is missing, so that I

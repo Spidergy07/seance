@@ -46,6 +46,20 @@ const INTERCEPTOR_SCRIPT =
   '},true);' +
   '})();</script>';
 
+/**
+ * A navigation guard injected into the restored document. It keeps the frame on
+ * the restored page by cancelling anything that would navigate it to the live
+ * web: form submissions are stopped, and `window.open` is neutralised so popups
+ * cannot escape. Top-level navigation is already denied by the sandbox (no
+ * `allow-top-navigation` token); meta refresh is neutralised at rewrite time.
+ * Together these cover the self-navigation paths that blanked the pane (R3.9).
+ */
+export const NAVIGATION_GUARD_SCRIPT =
+  '<script>(function(){' +
+  'document.addEventListener("submit",function(e){e.preventDefault();},true);' +
+  'try{window.open=function(){return null;};}catch(_e){}' +
+  '})();</script>';
+
 /** Options for assembling the restored document for the iframe. */
 export interface RestoredSrcDocOptions {
   /**
@@ -90,15 +104,16 @@ export function buildRestoredSrcDoc(
   if (options.ruffleScriptUrl !== undefined && options.ruffleScriptUrl !== '') {
     out = injectRuffle(out, options.ruffleScriptUrl);
   }
+  const injected = NAVIGATION_GUARD_SCRIPT + INTERCEPTOR_SCRIPT;
   const body = /<\/body>/i;
   if (body.test(out)) {
-    return out.replace(body, `${INTERCEPTOR_SCRIPT}</body>`);
+    return out.replace(body, `${injected}</body>`);
   }
   const htmlEnd = /<\/html>/i;
   if (htmlEnd.test(out)) {
-    return out.replace(htmlEnd, `${INTERCEPTOR_SCRIPT}</html>`);
+    return out.replace(htmlEnd, `${injected}</html>`);
   }
-  return out + INTERCEPTOR_SCRIPT;
+  return out + injected;
 }
 
 /** A parsed "follow this link" message from the restored iframe. */

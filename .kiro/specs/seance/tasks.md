@@ -187,6 +187,61 @@ Legend: [R#] requirement id, [D#] design section.
     fixture-based test story, and the Kiro workflow (steering + spec + the
     test-on-change hook). [docs]
 
+## Phase 6 — Browser-test fix round (post-launch bugs)
+
+Bugs found by a human testing the running app in a real browser (desktop
+1440px, phone 375px) against the live Internet Archive. One local commit per
+task; tests and typecheck pass after each.
+
+27. [x] **Keep the restored page on the restored document.** The Restored iframe
+    went blank: a `<meta http-equiv="refresh">` navigated the frame away
+    (GeoCities "you will be redirected"), framesets fetched dead-origin frames,
+    and some archived pages carried a `<meta>` CSP that blocked archive assets
+    and the interceptor. Neutralise meta refresh (remove it, surface the target
+    as a link that re-runs recovery), rewrite `<frame src>` like other
+    references, strip archived `<meta>` CSP, and inject a navigation guard
+    (cancel form submits, neutralise `window.open`) into the frame.
+    [R3.9, R3.10, R3.11, D7, D8]
+    - Tests: fixture HTML with meta refresh + CSP + frameset — after rewrite the
+      refresh/CSP metas are gone, a notice link points at the archive, and
+      frames are archive URLs; the built srcdoc contains the navigation guard.
+
+28. [x] **Honest asset accounting.** The GeoCities certificate read "3 of 3, 100%"
+    while a background image showed broken. Legacy image-bearing attributes
+    (`background` on body/table cells, `<input type=image src>`) were neither
+    rewritten nor counted, so a genuinely missing image never entered the
+    report. Rewrite and collect those attributes so every referenced image is
+    accounted for and only a real status-200 capture counts as recovered; the
+    rest are missing or unknown. [R4.1–R4.4, R3.4, D6, D7]
+    - Tests: fixture with `body[background]`/`td[background]`/`input[src]` where
+      the background has no capture — it is collected, rewritten to the archive,
+      and reported missing (not counted as recovered).
+
+29. [x] **Do not call a recently-live site dead.** homestarrunner.com still answers
+    today (last capture 2 days ago) yet the certificate said "Died on …". When
+    the most recent working capture is within the last 30 days of now, show a
+    plain "Still answering recently. Last saved copy: <date>." state and suggest
+    picking an older capture, instead of a death date. [R5.1, voice.md, D6]
+    - Tests: a pure liveness classifier (timestamp vs a reference date) returns
+      recently-alive within 30 days and dead beyond it; the certificate renders
+      the alive copy for a recent capture and the death date for an old one.
+
+30. [x] **Capture picker for older captures.** Flash on homestarrunner exists only
+    in 2004–2006 captures, but the app always used the newest. Surface the
+    page's captures (grouped by year, then date, from the existing `byDate`
+    logic) and let the visitor open an older one, re-running recovery for that
+    timestamp. Keyboard accessible and usable at 375px. [R2.4, D5]
+    - Tests: `selectByTimestamp` picks the exact capture; the recovery view
+      carries the capture list; the picker groups by year and calls back with
+      the chosen timestamp.
+
+31. [x] **Fix "how it works" step overlap.** In the three intro steps the numbered
+    circle overlapped the first word of the step text at some widths. The list
+    item's left padding was smaller than the circle's extent. Give the text
+    enough left padding to clear the circle at any width. [voice.md visual rules]
+    - Tests: a guard that parses `theme.css` and asserts the `.steps li` left
+      padding clears the `.steps li::before` circle extent.
+
 ---
 
 ## Property-based test summary (the non-negotiable ones)

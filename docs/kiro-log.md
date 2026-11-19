@@ -686,3 +686,36 @@ was built, which Kiro features were used, and any problem hit.
   is selected by the in-file `export const config` instead, so `vercel.json`
   keeps only framework/build/output.
 - Verified: 209 tests pass, typecheck, lint, and build clean.
+
+
+## Task 27 — Keep the restored page on the restored document (fix round)
+
+- Bug: the Restored iframe went blank. `http://www.geocities.com/Athens/`
+  rendered then blanked after a few seconds; `http://www.homestarrunner.com/`
+  showed an empty white area.
+- Root cause: three paths let the archived document leave the restored view.
+  (1) A `<meta http-equiv="refresh">` ("you will be automatically redirected")
+  navigated the sandboxed frame to its target, which failed and blanked the
+  pane. (2) `<frame src>` inside framesets was not in the rewrite set, so frames
+  fetched the dead origin and showed blank. (3) Some archived pages carry a
+  `<meta>` Content-Security-Policy that blocks archive-served assets and the
+  injected interceptor.
+- Fix (`src/dom/rewrite-document.ts`, `src/ui/restored-pane-logic.ts`):
+  - `neutraliseMetaRefresh` removes the refresh meta and, when it named a
+    target, rewrites that target to the archive and prepends a plain notice with
+    a link the click interceptor turns into a fresh recovery.
+  - `neutraliseMetaCsp` strips archived `<meta>` CSP (the sandbox is the real
+    trust boundary).
+  - Added `frame[src]` to the rewrite/collect rules (kind `other`).
+  - Added `NAVIGATION_GUARD_SCRIPT`, injected into the iframe srcdoc: it cancels
+    form submissions and neutralises `window.open`. Top navigation is already
+    denied by the sandbox token list.
+- Spec: added R3.9–R3.11; design §7 (meta/frame handling) and §8 (navigation
+  guard); tasks.md task 27.
+- Tests (offline): `tests/dom/restored-navigation.test.ts` with a new fixture
+  `redirect-frameset.html` — asserts the refresh/CSP metas are gone, a notice
+  links to the archive, frames are archive URLs, and the srcdoc carries the
+  guard. Wrote the test first (6 failing), then implemented.
+- Kiro features used: the `seance` spec drove the requirement IDs; the
+  structure steering kept URL decisions in core and DOM work in `src/dom`.
+- Verified: `npm run typecheck` clean; full suite 215 passing.

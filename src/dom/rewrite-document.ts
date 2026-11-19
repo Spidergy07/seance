@@ -83,6 +83,9 @@ const ATTR_RULES: AttrRule[] = [
   { selector: 'video[src]', attr: 'src', mode: 'url', kindOf: () => 'media' },
   { selector: 'audio[src]', attr: 'src', mode: 'url', kindOf: () => 'media' },
   { selector: 'iframe[src]', attr: 'src', mode: 'url', kindOf: () => 'other' },
+  // Framesets: archived pages still use them. Without this the frames fetch the
+  // dead origin and the restored page shows blank frames (R3.10).
+  { selector: 'frame[src]', attr: 'src', mode: 'url', kindOf: () => 'other' },
   {
     selector: 'object[data]',
     attr: 'data',
@@ -132,6 +135,87 @@ function neutraliseBase(doc: Document): void {
 }
 
 /**
+ * Pull the target URL out of a `<meta http-equiv="refresh">` `content` value.
+ * Accepts the common shapes: `"5"`, `"5; url=foo"`, `"5;url=foo"`, `"5; foo"`.
+ * Returns null when there is no target (a self-reload), so the caller just
+ * removes the meta.
+ */
+function metaRefreshTarget(content: string): string | null {
+  const semi = content.indexOf(';');
+  if (semi === -1) {
+    return null;
+  }
+  let rest = content.slice(semi + 1).trim();
+  const urlPrefix = /^url\s*=\s*/i.exec(rest);
+  if (urlPrefix) {
+    rest = rest.slice(urlPrefix[0].length).trim();
+  }
+  rest = rest.replace(/^["']|["']$/g, '').trim();
+  return rest === '' ? null : rest;
+}
+
+/** Prepend a visible "we stopped a redirect" notice with a re-recovery link. */
+function insertRefreshNotice(doc: Document, archiveUrl: string): void {
+  const host = doc.body ?? doc.documentElement;
+  if (!host) {
+    return;
+  }
+  const notice = doc.createElement('div');
+  notice.setAttribute('data-seance-refresh', '');
+  notice.setAttribute('role', 'note');
+  const line = doc.createElement('p');
+  line.textContent =
+    'This saved page tried to send you to another address. ' +
+    'Seance stopped the redirect so the page stays visible.';
+  const linkLine = doc.createElement('p');
+  const link = doc.createElement('a');
+  link.setAttribute('href', archiveUrl);
+  link.textContent = 'Open that page through Seance';
+  linkLine.appendChild(link);
+  notice.appendChild(line);
+  notice.appendChild(linkLine);
+  host.insertBefore(notice, host.firstChild);
+}
+
+/**
+ * Neutralise `<meta http-equiv="refresh">` so the restored frame does not
+ * navigate itself away (the GeoCities "you will be redirected" blanking). The
+ * element is removed; any target it named is rewritten to the archive and
+ * surfaced as a link the visitor can follow, which the restored pane's click
+ * interceptor turns into a fresh recovery (R3.9).
+ */
+function neutraliseMetaRefresh(doc: Document, ctx: RewriteContext): void {
+  for (const meta of Array.from(doc.querySelectorAll('meta[http-equiv]'))) {
+    if ((meta.getAttribute('http-equiv') ?? '').toLowerCase() !== 'refresh') {
+      continue;
+    }
+    const target = metaRefreshTarget(meta.getAttribute('content') ?? '');
+    meta.remove();
+    if (target !== null) {
+      insertRefreshNotice(doc, rewrite(target, ctx));
+    }
+  }
+}
+
+/**
+ * Remove any archived `<meta>` Content-Security-Policy so the original page's
+ * policy cannot stop archive-served assets or the in-frame interceptor from
+ * loading (R3.11). The real trust boundary is the sandbox, not the archived
+ * page's own CSP.
+ */
+function neutraliseMetaCsp(doc: Document): void {
+  for (const meta of Array.from(doc.querySelectorAll('meta[http-equiv]'))) {
+    const equiv = (meta.getAttribute('http-equiv') ?? '').toLowerCase();
+    if (
+      equiv === 'content-security-policy' ||
+      equiv === 'content-security-policy-report-only'
+    ) {
+      meta.remove();
+    }
+  }
+}
+
+/**
  * Rewrite all resource references in `doc` in place and return the element-level
  * assets it referenced (de-duplicated by original URL).
  */
@@ -140,6 +224,8 @@ export function rewriteDocument(
   ctx: RewriteContext,
 ): RewriteDocumentResult {
   neutraliseBase(doc);
+  neutraliseMetaCsp(doc);
+  neutraliseMetaRefresh(doc, ctx);
 
   const assetsByUrl = new Map<string, CollectedAsset>();
   const record = (originalUrl: string | null, kind: AssetKind | null): void => {

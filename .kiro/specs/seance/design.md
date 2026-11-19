@@ -191,6 +191,14 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   recovery count bounded.
 - `<base>` tags are removed or neutralised so they cannot redirect resolution
   off the archive.
+- `<frame src>` is rewritten alongside `<iframe src>` so archived framesets
+  render from the archive rather than fetching dead-origin frames (R3.10).
+- `<meta http-equiv="refresh">` is neutralised: the element is removed so the
+  restored page cannot navigate itself away, and its target (if any) is
+  rewritten to the archive and surfaced as a visible link that re-runs recovery
+  (R3.9). `<meta http-equiv="Content-Security-Policy">` is removed so the
+  original page's policy cannot block archive-served assets or the in-frame
+  interceptor (R3.11).
 - Internal `<a>` clicks are intercepted by the app shell (not here) to re-run
   recovery (R3.8).
 
@@ -202,6 +210,13 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   and form submission are denied by leaving their tokens out.
 - Archived content is untrusted input (R9.2). The sandbox is the trust
   boundary. Links inside post messages to the shell to trigger re-recovery.
+- A navigation guard is injected into the frame alongside the click
+  interceptor (R3.9): it cancels form submissions and neutralises `window.open`
+  so archived markup and script cannot steer the frame onto the live web. Top
+  navigation is already denied by leaving `allow-top-navigation` out of the
+  sandbox token list; the guard plus the meta-refresh neutralisation in §7
+  cover the self-navigation paths (meta refresh, forms, popups) that otherwise
+  blanked the restored view.
 
 ## 9. Flash via Ruffle (dom/flash.ts)
 - Detect `<object>/<embed>` referencing `.swf` and bare `.swf` links.
