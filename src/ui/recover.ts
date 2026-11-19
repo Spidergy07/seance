@@ -9,13 +9,14 @@
 
 import { fetchCaptures } from '../archive/cdx-client.js';
 import type { ArchiveClientDeps } from '../archive/cdx-client.js';
+import { createCdxCache, type CdxCache } from '../archive/cdx-cache.js';
 import { fetchSnapshot } from '../archive/snapshot-client.js';
 import { createCaptureLookup } from '../archive/capture-lookup.js';
 import type { ClientErrorKind } from '../archive/result.js';
 import { selectCapture, selectByTimestamp, byDate } from '../core/capture-select.js';
 import { buildRecoveryReport } from '../core/recovery.js';
 import { rewriteDocument } from '../dom/rewrite-document.js';
-import { resolveAssetStatuses } from '../dom/asset-status.js';
+import { resolveAssetStatuses, DEFAULT_MAX_CHECKED_ASSETS } from '../dom/asset-status.js';
 import { applyFlashNotices } from '../dom/flash.js';
 import { extractReader } from '../dom/reader.js';
 import type { ReaderDeps } from '../dom/reader.js';
@@ -36,6 +37,16 @@ export interface RecoverDeps {
   createReadability?: ReaderDeps['createReadability'];
   /** Max concurrent CDX asset lookups. */
   lookupConcurrency?: number;
+  /**
+   * Cap on distinct assets checked against the archive (R8.7). Defaults to
+   * `DEFAULT_MAX_CHECKED_ASSETS`; assets past the cap are reported `unknown`.
+   */
+  maxCheckedAssets?: number;
+  /**
+   * Session cache of CDX answers (R8.8), shared across recoveries so a repeated
+   * lookup of the same URL makes no new archive request.
+   */
+  cdxCache?: CdxCache;
 }
 
 /** Options for a single recovery run. */
@@ -83,6 +94,9 @@ export async function recover(
   if (deps.baseUrl !== undefined) {
     archiveDeps.baseUrl = deps.baseUrl;
   }
+  if (deps.cdxCache !== undefined) {
+    archiveDeps.cdxCache = deps.cdxCache;
+  }
 
   const captures = await fetchCaptures(originalUrl, archiveDeps);
   if (!captures.ok) {
@@ -125,7 +139,9 @@ export async function recover(
     archiveDeps,
     deps.lookupConcurrency !== undefined ? { concurrency: deps.lookupConcurrency } : {},
   );
-  const assetResults = await resolveAssetStatuses(assets, lookup);
+  const assetResults = await resolveAssetStatuses(assets, lookup, {
+    maxChecked: deps.maxCheckedAssets ?? DEFAULT_MAX_CHECKED_ASSETS,
+  });
 
   const report = buildRecoveryReport({
     selectedCapture: selected,
@@ -170,12 +186,19 @@ export async function recover(
 }
 
 /**
+ * One CDX cache for the whole browser session, so re-recovering a page or
+ * following an internal link back to it makes no new CDX request (R8.8).
+ */
+const browserCdxCache = createCdxCache();
+
+/**
  * Default recovery dependencies for the browser: real `fetch`, `DOMParser`
  * for parsing, and `XMLSerializer` for serialising the rewritten document.
  */
 export function browserRecoverDeps(): RecoverDeps {
   return {
     fetch: (...args) => fetch(...args),
+    cdxCache: browserCdxCache,
     parseHtml: (html) => new DOMParser().parseFromString(html, 'text/html'),
     serialize: (doc) =>
       `<!doctype html>${doc.documentElement?.outerHTML ?? new XMLSerializer().serializeToString(doc)}`,

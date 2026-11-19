@@ -59,4 +59,26 @@ describe('createCaptureLookup', () => {
     expect(calls[0]).toContain('https://seance.test/api/cdx?');
     expect(calls[0]).not.toContain('web.archive.org');
   });
+
+  it('runs at most two lookups at once by default (R8.7)', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchImpl = (async (endpoint: string) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      const url = new URLSearchParams(String(endpoint).split('?')[1]).get('url') ?? '';
+      return new Response(JSON.stringify({ rows: [header(), [
+        'k', '20080101000000', url, 'text/html', '200', 'D', '1',
+      ]] }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const lookup = createCaptureLookup({ fetch: fetchImpl });
+    const urls = ['a', 'b', 'c', 'd', 'e', 'f'].map((p) => `http://s/${p}`);
+    const map = await lookup(urls);
+
+    expect(maxInFlight).toBeLessThanOrEqual(2);
+    expect(map.size).toBe(urls.length);
+  });
 });

@@ -5,6 +5,7 @@
 
 import { parseCdxRows, type CdxRow } from '../core/capture-select.js';
 import type { Capture } from '../core/types.js';
+import type { CdxCache } from './cdx-cache.js';
 import {
   errorFromResponse,
   errorFromThrow,
@@ -21,6 +22,12 @@ export interface ArchiveClientDeps {
    * archive.org.
    */
   baseUrl?: string;
+  /**
+   * A session cache of CDX answers (R8.8). When present, a repeated lookup of
+   * the same URL is served from it with no new request. Only successful
+   * lookups are cached, so a transient failure can still be retried.
+   */
+  cdxCache?: CdxCache;
 }
 
 /** The proxy's success body for CDX. */
@@ -42,6 +49,14 @@ export async function fetchCaptures(
   originalUrl: string,
   deps: ArchiveClientDeps,
 ): Promise<ClientResult<Capture[]>> {
+  const cache = deps.cdxCache;
+  if (cache !== undefined) {
+    const cached = cache.get(originalUrl);
+    if (cached !== undefined) {
+      return ok(cached);
+    }
+  }
+
   const endpoint = cdxEndpoint(originalUrl, deps.baseUrl ?? '');
 
   let response: Response;
@@ -74,5 +89,9 @@ export async function fetchCaptures(
     });
   }
 
-  return ok(parseCdxRows(body.rows as CdxRow[]));
+  const captures = parseCdxRows(body.rows as CdxRow[]);
+  if (cache !== undefined) {
+    cache.set(originalUrl, captures);
+  }
+  return ok(captures);
 }

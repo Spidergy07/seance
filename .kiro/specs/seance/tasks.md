@@ -242,6 +242,48 @@ task; tests and typecheck pass after each.
     - Tests: a guard that parses `theme.css` and asserts the `.steps li` left
       padding clears the `.steps li::before` circle extent.
 
+## Phase 7 — Rate-limit / traffic fix round (post-launch bugs)
+
+Found by a human testing the running app against the live Internet Archive:
+after a couple of recoveries the archive answered with HTTP 429, the proxy took
+16s to report it, and the UI spun for 75+ seconds on one static line and never
+showed the rate-limited banner. Cause: per-asset CDX lookups (one busy page
+referenced 49 assets, so a single recovery fired dozens of CDX requests, each
+with its own retry/backoff). One local commit per task; tests and typecheck
+pass after each.
+
+32. [x] **Cut archive traffic per recovery.** Check at most a small fixed number
+    of assets (`DEFAULT_MAX_CHECKED_ASSETS`), chosen by kind priority, and
+    report the rest as `unknown`; run asset checks at concurrency 2; cache CDX
+    answers in memory for the session (a client cache shared across recoveries
+    and a short-lived proxy cache). Aim: under six archive requests for a
+    typical page. [R8.7, R8.8, R4.4, R8.6, D3.1]
+    - Tests: `resolveAssetStatuses` with a cap checks only the N
+      highest-priority URLs and marks the rest unknown; `createCaptureLookup`
+      runs at most 2 lookups at once; `fetchCaptures` serves a repeated URL from
+      the cache (no second fetch) and never caches errors; an end-to-end traffic
+      test asserts a multi-asset page makes ≤6 archive requests and a second
+      recovery of the same page makes no new CDX request.
+
+33. [ ] **Bound the total wait and surface rate-limited/slow fast.** Give the
+    whole recovery one deadline (~20s) threaded as an `AbortSignal` into every
+    archive fetch; on the deadline, abort and show the timeout state. Reduce the
+    proxy's retry worst-case so a sustained 429 returns in a couple of seconds,
+    not tens. Make the rate-limited, timeout, outage, and network banners carry
+    a retry control. [R8.9, R8.2, R8.3, R8.4, D11]
+    - Tests: an aborted deadline makes `recover` return `timeout` without
+      hanging and the clients pass the signal to fetch; an `AbortError` maps to
+      the `timeout` client error; the proxy's default retry options bound the
+      worst-case wait; the rate-limited/timeout/outage/network banner content is
+      retryable.
+
+34. [ ] **Show progress while waiting.** `recover` reports each step through an
+    injected `onProgress` callback; the shell shows the current step's plain
+    line (searching, retrieving, rebuilding, checking assets, reading) instead
+    of one static message. [R8.10, R1.4, D3.1]
+    - Tests: a pure label map covers every step; `recover` reports the steps in
+      order for a successful run.
+
 ---
 
 ## Property-based test summary (the non-negotiable ones)

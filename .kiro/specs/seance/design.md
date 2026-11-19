@@ -78,13 +78,48 @@ interface RecoveryReport {
    `core/url-rewriter.rewrite()` (R3.1–R3.6).
 6. For each referenced asset, the app checks capture existence (batched CDX
    lookups) and builds `AssetResult`s; `core/recovery` computes the report
-   (R4.x).
+   (R4.x). The asset checks are bounded (§3.1): a small, fixed cap on how many
+   assets are checked, a small concurrency limit, and a session cache, so one
+   recovery of a typical page makes only a handful of archive requests
+   (R8.7, R8.8).
 7. `dom/reader` runs readability on the parsed DOM and rewrites its asset URLs
    with the same rewriter (R7.1, R7.4).
 8. `dom/flash` finds `.swf` references and mounts Ruffle for those with a
    working capture (R6.x).
 9. `ui` renders: `RestoredPane` (sandboxed iframe), `ReaderPane`,
    `DeathCertificate`, and any `StatusBanner`.
+
+## 3.1 Traffic and time bounds (tasks 32–34)
+
+A recovery used to fire one CDX request per referenced asset (dozens on a busy
+page), each with its own retry/backoff, so a single page could make 50+ archive
+requests and, under rate limiting, spin for over a minute. Three bounds keep a
+recovery cheap and quick:
+
+- **Asset-check cap + concurrency (R8.7).** `resolveAssetStatuses` checks at
+  most `DEFAULT_MAX_CHECKED_ASSETS` distinct assets, chosen by kind priority
+  (stylesheet, script, Flash, then image, media, other), and
+  `createCaptureLookup` runs at most 2 checks at once. Assets past the cap are
+  reported `unknown` — honest, never counted as recovered (R4.4, R8.6). With
+  the main-page CDX (1) and the snapshot (1), a typical page stays under six
+  archive requests.
+- **Session CDX cache (R8.8).** `fetchCaptures` consults an injected
+  `CdxCache`; a repeated lookup of the same URL returns the cached captures
+  with no new request. The browser shares one cache across recoveries (so
+  re-recovering a page, or following an internal link back to it, is free), and
+  the proxy keeps a short-lived in-memory cache keyed only by the queried URL.
+  Both are ephemeral and hold no user identity, so R9.5 still holds. Only
+  successful responses are cached, so a transient failure can still be retried.
+- **Overall deadline (R8.9).** `recover` runs under a single deadline (about
+  20s). It threads one `AbortSignal` into every archive fetch; when the deadline
+  passes, in-flight requests abort. An abort during the main CDX or snapshot
+  fails the recovery with the timeout state; an abort during the asset-check
+  phase just leaves the remaining assets `unknown` and renders the partial page
+  (R8.5). The deadline timer is always cleared when the recovery settles.
+
+Progress (R8.10): `recover` reports each step it enters through an injected
+`onProgress` callback, and the shell shows the current step's plain line while
+waiting, instead of one static message.
 
 ## 4. The link rewriter (core/url-rewriter.ts)
 
@@ -277,11 +312,19 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 | Ruffle failure   | Ruffle load/init throws                    | plain error, rest of page renders (R6.5)                                        |
 
 ### Timeout / retry policy
-- Per-request hard timeout (e.g. 8s) in the proxy and the client.
+- Per-request hard timeout in the proxy and the client. The proxy's default is
+  6s per attempt with at most 2 attempts and a short, capped backoff (≤2s, and
+  any `Retry-After` is capped to that), so a sustained 429 surfaces in a couple
+  of seconds instead of tens of seconds (R8.9). The browser client passes the
+  recovery's deadline `AbortSignal` into every fetch, so a hung proxy cannot
+  hold the UI open past the deadline.
 - Retries only on 429 and transient 5xx/network errors. Exponential backoff
-  with jitter, capped attempts (e.g. 3). No retry on 4xx other than 429.
+  with jitter, capped attempts. No retry on 4xx other than 429.
 - The proxy sets a descriptive User-Agent and respects `Retry-After` when
-  present.
+  present (capped to the backoff ceiling).
+- An abort mapped from the client's deadline becomes the `timeout` client error
+  kind, which the shell shows as the timeout state with a retry control. The
+  `rate-limited`, `timeout`, `outage`, and `network` states are all retryable.
 
 ## 12. Testing strategy
 - `core/` has full unit coverage; `url-rewriter` additionally has the fast-check
@@ -295,5 +338,6 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 
 ## 13. Deployment
 - Static bundle from `vite build`, served on a free static host.
-- `api/` deployed as the host's serverless function. Stateless; optional short
-  edge cache on CDX responses only.
+- `api/` deployed as the host's serverless function. Stateless; a short-lived
+  in-memory cache of CDX responses only (keyed by the queried URL, no user
+  data), consistent with R8.8 and R9.5.

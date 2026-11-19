@@ -153,6 +153,24 @@ fails, so that I know whether the problem is my URL, the archive, or the asset.
 - R8.5 WHERE recovery is partial, THE SYSTEM SHALL still render what loaded and
   SHALL make the partial status obvious (count recovered vs. missing).
 - R8.6 THE SYSTEM SHALL never present an unrecovered asset as if it loaded.
+- R8.7 WHILE resolving which referenced assets were saved, THE SYSTEM SHALL
+  bound the archive traffic a single recovery makes: it SHALL check at most a
+  small, fixed number of assets against the archive, SHALL run those checks
+  with a small concurrency limit, and SHALL mark any asset it did not check
+  "unknown" (never recovered, R4.4, R8.6). The aim is under six archive
+  requests for a typical page.
+- R8.8 THE SYSTEM SHALL cache CDX answers in memory for the session, in the
+  browser and in the proxy, so a repeated lookup of the same URL within the
+  session makes no new archive request. The proxy cache is ephemeral and keyed
+  only by the queried URL; it stores no user identity and nothing durable, so
+  it does not breach R9.5.
+- R8.9 THE SYSTEM SHALL complete or stop a recovery within a bounded time (about
+  20 seconds). WHEN that deadline passes, THE SYSTEM SHALL stop waiting and show
+  the slow/timeout or rate-limited state with a retry control, rather than keep
+  spinning, and its retries SHALL NOT stack up to minutes.
+- R8.10 WHILE a recovery is in progress, THE SYSTEM SHALL show which step is
+  running (searching for captures, retrieving the page, rebuilding it, checking
+  assets, preparing the reader view), not a single static line.
 
 ## R9 — Privacy, safety, and attribution
 **User story:** As a visitor, I want the app to be safe and honest about

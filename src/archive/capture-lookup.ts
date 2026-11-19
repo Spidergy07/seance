@@ -13,7 +13,8 @@ import { fetchCaptures } from './cdx-client.js';
 import type { ArchiveClientDeps } from './cdx-client.js';
 
 export interface CaptureLookupOptions {
-  /** Maximum concurrent CDX requests. Defaults to 6. */
+  /** Maximum concurrent CDX requests. Defaults to 2 to keep archive traffic
+   *  gentle under rate limiting (R8.7). */
   concurrency?: number;
 }
 
@@ -51,7 +52,7 @@ export function createCaptureLookup(
   deps: ArchiveClientDeps,
   options: CaptureLookupOptions = {},
 ): CaptureLookup {
-  const concurrency = options.concurrency ?? 6;
+  const concurrency = options.concurrency ?? 2;
   return async (urls) => {
     const result = new Map<string, Capture | null>();
     await mapLimited([...urls], concurrency, async (url) => {

@@ -81,6 +81,9 @@ function deps(): RecoverDeps {
     serialize: (doc) =>
       `<!doctype html>${(doc.documentElement as unknown as { outerHTML: string }).outerHTML}`,
     lookupConcurrency: 4,
+    // This test verifies full asset accounting, so lift the per-recovery check
+    // cap (R8.7) above the five assets in the fixture.
+    maxCheckedAssets: 10,
   };
 }
 

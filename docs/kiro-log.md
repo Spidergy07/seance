@@ -804,3 +804,38 @@ was built, which Kiro features were used, and any problem hit.
   the spacing tokens, and asserts `.steps li` left padding ≥ the circle's
   `left + width`. Wrote the guard first (failing at 2 < 2.4), then fixed.
 - Verified: `npm run typecheck` clean; full suite 231 passing; lint clean.
+
+
+## Task 32 — Cut archive traffic per recovery (rate-limit fix round)
+
+- Bug: after a couple of recoveries the live archive returned HTTP 429. A single
+  recovery fired one CDX request per referenced asset (one page referenced 49),
+  each with its own retry/backoff, so the browser made dozens of archive
+  requests and the proxy itself took ~16s to report a 429.
+- Root cause: `createCaptureLookup` queried the CDX proxy once per asset URL,
+  with no cap, concurrency of 6, and no caching.
+- Fix (traffic reduction only; the time bound and progress are tasks 33–34):
+  - Asset-check cap (R8.7): `resolveAssetStatuses` now takes `{ maxChecked }`.
+    It checks at most `DEFAULT_MAX_CHECKED_ASSETS` (4) distinct assets, chosen
+    by kind priority (stylesheet, script, Flash, then image, media, other), and
+    marks every unchecked asset `unknown` — never recovered (R4.4, R8.6). Omit
+    the option to check all (keeps the asset-status unit tests and the e2e flow,
+    which lifts the cap to 10, intact).
+  - Concurrency: `createCaptureLookup` default dropped from 6 to 2.
+  - Session CDX cache (R8.8): new `src/archive/cdx-cache.ts` (`createCdxCache`);
+    `fetchCaptures` serves a repeated URL from an injected cache and stores only
+    successful lookups (a transient error stays retryable). The browser shares
+    one cache across recoveries via a module singleton in `browserRecoverDeps`,
+    so re-recovering a page or following a link back to it makes no new CDX
+    request. The proxy-side cache is task 33's change set-up; this task is the
+    client side.
+  - Net effect: for a typical page the recovery makes the page CDX (1) + the
+    snapshot (1) + at most 4 asset CDX = ≤6 archive requests, down from dozens.
+- Spec: requirements R8.7/R8.8; design §3 step 6 and new §3.1; tasks.md task 32.
+- Tests (offline, written first): `tests/archive/cdx-cache.test.ts` (cache hit,
+  per-URL miss, errors not cached), `tests/dom/asset-status-cap.test.ts`
+  (priority + cap → unknown), a concurrency guard in
+  `tests/archive/capture-lookup.test.ts` (≤2 in flight), and
+  `tests/ui/recover-traffic.test.ts` (≤6 requests for a 13-asset page; a second
+  recovery makes no new CDX request).
+- Verified: full suite 241 passing; typecheck and lint clean.
