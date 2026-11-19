@@ -32,4 +32,11 @@ describe('ReaderPane', () => {
     expect(html).toContain('No readable article');
     expect(html).toContain('The restored page is still shown');
   });
+
+  it('renders the empty reader as a compact note, not a full card (task 44)', () => {
+    const html = render({ ok: false, reason: 'no-article' });
+    // The empty variant carries the compact modifier so it reads as a slim
+    // line above the full-width restored view, not an empty half-pane.
+    expect(html).toContain('pane--note');
+  });
 });

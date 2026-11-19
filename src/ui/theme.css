@@ -359,6 +359,21 @@ a {
   }
 }
 
+/* No article: one full-width column so the restored view is not cramped next
+ * to an empty reader card (R7.3, task 44). Placed after the breakpoint above so
+ * it wins the cascade at wide widths too. */
+.panes--solo {
+  grid-template-columns: 1fr;
+}
+
+/* The empty reader collapses to a slim note, not a tall empty card. */
+.pane--note {
+  align-self: start;
+}
+.pane--note .pane__frame {
+  display: none;
+}
+
 .pane {
   background: var(--bg-raised);
   border: 1px solid var(--panel-edge);

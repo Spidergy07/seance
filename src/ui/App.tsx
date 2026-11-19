@@ -17,6 +17,7 @@ import { ResultErrorBoundary } from './ResultErrorBoundary.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import { formatCaptureDate } from './format.js';
 import { recoveryStepLabel, type RecoveryStep } from './progress.js';
+import { resultPanesClass } from './result-layout.js';
 import type { BannerStatus } from './status-banner.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
@@ -196,9 +197,11 @@ export function App(props: AppProps) {
                 selectedTimestamp={phase.view.selectedCapture.timestamp}
                 onPick={(timestamp) => start(phase.view.pageOriginalUrl, timestamp)}
               />
-              <div className="panes">
+              <div className={resultPanesClass(phase.view.reader.ok)}>
                 {/* Reader is first in the DOM so it leads when the panes stack
-                    on a narrow screen (R7.2). */}
+                    on a narrow screen (R7.2). When there is no article it
+                    collapses to a slim note and Restored takes the full width
+                    (R7.3, task 44). */}
                 <ReaderPane reader={phase.view.reader} />
                 <RestoredPane
                   html={phase.view.restoredHtml}

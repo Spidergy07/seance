@@ -16,7 +16,10 @@ export interface ReaderPaneProps {
 
 export function ReaderPane({ reader }: ReaderPaneProps) {
   return (
-    <section className="pane pane--reader" aria-label="Reader view">
+    <section
+      className={reader.ok ? 'pane pane--reader' : 'pane pane--reader pane--note'}
+      aria-label="Reader view"
+    >
       <header className="pane__head">
         <h2 className="pane__title">Reader</h2>
         <p className="pane__subtitle">A clean, readable version.</p>
