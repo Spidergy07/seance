@@ -27,3 +27,16 @@ was built, which Kiro features were used, and any problem hit.
     so the zero-test criterion exits 0.
 - Verified: `npm run typecheck` exits 0, `npm test` exits 0 (no tests yet),
   `npm run lint` clean, `npm run build` produces a static bundle.
+
+## Task 2 — Set up the test environment
+
+- Added `linkedom` and `fast-check` as pinned dev dependencies.
+- Added `tests/setup.sample.test.ts` with three checks: vitest runs under Node,
+  linkedom parses HTML and exposes a DOM, and fast-check runs a property.
+- Kiro features used: spec `tasks.md` (done criteria), `tech.md` steering
+  (vitest + linkedom + fast-check, Node-only, offline).
+- Property-based testing is introduced here as a smoke test; the real rewriter
+  properties come in task 6.
+- Problems hit: none. esbuild/fsevents postinstall warnings from the
+  allowScripts policy are harmless (platform binaries already present).
+- Verified: 3 tests pass, typecheck and lint clean.

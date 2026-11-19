@@ -18,7 +18,7 @@ Legend: [R#] requirement id, [D#] design section.
    devDependencies locally (no global installs). [N3]
    - Done: `npm run typecheck` and `npm test` run with zero tests and exit 0.
 
-2. **Set up the test environment.** Configure vitest for Node, add `linkedom`
+2. [x] **Set up the test environment.** Configure vitest for Node, add `linkedom`
    and `fast-check` as devDependencies, add a trivial sample test to prove the
    runner and DOM shim work. [N1, N2, D12]
    - Done: a sample `linkedom` test and a sample `fast-check` test pass.
