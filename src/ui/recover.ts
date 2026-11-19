@@ -13,7 +13,8 @@ import { createCdxCache, type CdxCache } from '../archive/cdx-cache.js';
 import { fetchSnapshot } from '../archive/snapshot-client.js';
 import { createCaptureLookup } from '../archive/capture-lookup.js';
 import type { ClientErrorKind } from '../archive/result.js';
-import { selectCapture, selectByTimestamp, byDate } from '../core/capture-select.js';
+import { selectCapture, selectByTimestamp, byDate, lastRealCapture } from '../core/capture-select.js';
+import { classifyRedirectStub } from '../core/redirect-stub.js';
 import { buildRecoveryReport } from '../core/recovery.js';
 import { rewriteDocument } from '../dom/rewrite-document.js';
 import { rewriteSwfToProxy } from '../dom/rewrite-swf.js';
@@ -191,20 +192,47 @@ async function runRecovery(
 
   const captureList = byDate(captures.value);
   notify('retrieving');
-  const snapshot = await fetchSnapshot(selected.originalUrl, selected.timestamp, archiveDeps);
-  if (!snapshot.ok) {
-    return { ok: false, kind: mapClientError(snapshot.error.kind), detail: snapshot.error.message };
+  const firstSnapshot = await fetchSnapshot(selected.originalUrl, selected.timestamp, archiveDeps);
+  if (!firstSnapshot.ok) {
+    return { ok: false, kind: mapClientError(firstSnapshot.error.kind), detail: firstSnapshot.error.message };
+  }
+
+  // Redirect-stub rule (R2.7): on the default path (no explicit capture pick),
+  // if the most recent 200 capture is a bare redirect stub — a parked or
+  // "moved" placeholder that kept returning 200 for years — show and date the
+  // most recent real-content capture instead, so the certificate reflects the
+  // real site rather than the stub. Costs at most one extra snapshot fetch, and
+  // only when the default selection turns out to be a stub.
+  let shown = selected;
+  let lastWorkingCapture = selection.lastWorking;
+  let snapshotBody = firstSnapshot.value.body;
+
+  if (
+    requested === null &&
+    classifyRedirectStub(firstSnapshot.value.body) !== null
+  ) {
+    const real = lastRealCapture(captures.value, selected.digest);
+    if (real !== null && real.timestamp !== selected.timestamp) {
+      notify('retrieving');
+      const realSnapshot = await fetchSnapshot(real.originalUrl, real.timestamp, archiveDeps);
+      if (!realSnapshot.ok) {
+        return { ok: false, kind: mapClientError(realSnapshot.error.kind), detail: realSnapshot.error.message };
+      }
+      shown = real;
+      lastWorkingCapture = real;
+      snapshotBody = realSnapshot.value.body;
+    }
   }
 
   const ctx: RewriteContext = {
-    timestamp: selected.timestamp,
-    pageOriginalUrl: selected.originalUrl,
+    timestamp: shown.timestamp,
+    pageOriginalUrl: shown.originalUrl,
     raw: true,
   };
 
   // Rewrite the restored document in place and collect its assets.
   notify('rebuilding');
-  const restoredDoc = deps.parseHtml(snapshot.value.body);
+  const restoredDoc = deps.parseHtml(snapshotBody);
   const { assets } = rewriteDocument(restoredDoc, ctx);
 
   notify('checking');
@@ -217,8 +245,8 @@ async function runRecovery(
   });
 
   const report = buildRecoveryReport({
-    selectedCapture: selected,
-    lastWorkingCapture: selection.lastWorking,
+    selectedCapture: shown,
+    lastWorkingCapture,
     assets: assetResults,
   });
 
@@ -249,13 +277,13 @@ async function runRecovery(
     readerDeps.createReadability = deps.createReadability;
   }
   notify('reading');
-  const reader = extractReader(snapshot.value.body, ctx, readerDeps);
+  const reader = extractReader(snapshotBody, ctx, readerDeps);
 
   return {
     ok: true,
     view: {
-      pageOriginalUrl: selected.originalUrl,
-      selectedCapture: selected,
+      pageOriginalUrl: shown.originalUrl,
+      selectedCapture: shown,
       captures: captureList,
       report,
       restoredHtml: deps.serialize(restoredDoc),

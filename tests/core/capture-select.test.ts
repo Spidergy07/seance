@@ -3,6 +3,7 @@ import {
   parseCdxRows,
   selectBest,
   lastWorking,
+  lastRealCapture,
   byDate,
   selectCapture,
   type CdxRow,
@@ -21,6 +22,7 @@ describe('parseCdxRows', () => {
       timestamp: '20050101000000',
       statusCode: 200,
       mimeType: 'text/html',
+      digest: 'AAAA',
     });
   });
 
@@ -33,6 +35,56 @@ describe('parseCdxRows', () => {
 
   it('returns an empty array for no rows', () => {
     expect(parseCdxRows([])).toEqual([]);
+  });
+
+  it('parses the digest field when present (R2.7)', () => {
+    expect(mixed[0]?.digest).toBe('AAAA');
+    expect(mixed[2]?.digest).toBe('CCCC');
+  });
+});
+
+describe('lastRealCapture (R2.7)', () => {
+  const cap = (timestamp: string, statusCode: number, digest: string) => ({
+    originalUrl: 'http://x/',
+    timestamp,
+    statusCode,
+    mimeType: 'text/html',
+    digest,
+  });
+
+  it('returns the most recent 200 whose digest differs from the stub digest', () => {
+    const caps = [
+      cap('20111220000000', 200, 'STUB'),
+      cap('20110101000000', 200, 'STUB'),
+      cap('20060101000000', 200, 'REAL'),
+      cap('20050101000000', 200, 'REAL2'),
+    ];
+    expect(lastRealCapture(caps, 'STUB')?.timestamp).toBe('20060101000000');
+  });
+
+  it('ignores non-200 captures', () => {
+    const caps = [
+      cap('20120101000000', 301, 'XXXX'),
+      cap('20111220000000', 200, 'STUB'),
+      cap('20060101000000', 200, 'REAL'),
+    ];
+    expect(lastRealCapture(caps, 'STUB')?.timestamp).toBe('20060101000000');
+  });
+
+  it('falls back to the most recent 200 when no digest differs', () => {
+    const caps = [
+      cap('20111220000000', 200, 'STUB'),
+      cap('20110101000000', 200, 'STUB'),
+    ];
+    expect(lastRealCapture(caps, 'STUB')?.timestamp).toBe('20111220000000');
+  });
+
+  it('without a stub digest returns the most recent 200', () => {
+    const caps = [
+      cap('20111220000000', 200, 'STUB'),
+      cap('20060101000000', 200, 'REAL'),
+    ];
+    expect(lastRealCapture(caps, undefined)?.timestamp).toBe('20111220000000');
   });
 });
 

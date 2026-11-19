@@ -22,6 +22,12 @@ export interface Capture {
   /** Archived HTTP status code (200, 404, ...). */
   statusCode: number;
   mimeType: string;
+  /**
+   * CDX content digest (SHA-1 of the archived payload). Two captures with the
+   * same digest have identical content. Used to tell a real page from a
+   * repeated redirect stub (R2.7). Absent when the CDX row carried no digest.
+   */
+  digest?: string;
 }
 
 /** The kind of resource a reference points at, used to group the report. */

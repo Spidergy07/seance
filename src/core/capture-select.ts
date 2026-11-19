@@ -24,16 +24,23 @@ export function parseCdxRows(rows: readonly CdxRow[]): Capture[] {
     const original = row[2];
     const mimeType = row[3];
     const statusCode = row[4];
+    const digest = row[5];
     if (!timestamp || !TIMESTAMP_RE.test(timestamp)) {
       continue; // header row or malformed row
     }
     const status = Number.parseInt(statusCode ?? '', 10);
-    captures.push({
+    const capture: Capture = {
       originalUrl: original ?? '',
       timestamp,
       statusCode: Number.isNaN(status) ? 0 : status,
       mimeType: mimeType ?? '',
-    });
+    };
+    // Only set `digest` when the row carried one, so `exactOptionalPropertyTypes`
+    // stays satisfied (no explicit `undefined`).
+    if (digest !== undefined && digest !== '') {
+      capture.digest = digest;
+    }
+    captures.push(capture);
   }
   return captures;
 }
@@ -64,6 +71,29 @@ export function selectBest(captures: readonly Capture[]): Capture | null {
  */
 export function lastWorking(captures: readonly Capture[]): Capture | null {
   return selectBest(captures);
+}
+
+/**
+ * The most recent working (status-200) capture whose content differs from a
+ * redirect stub (R2.7). Given the `digest` of a capture known to be a redirect
+ * stub, this returns the most recent 200 capture with a *different* known
+ * digest — the last capture of the real site before it became a parked or
+ * "moved" placeholder. When no capture has a different known digest (or no stub
+ * digest is given), it falls back to the most recent 200, so behaviour is
+ * unchanged for ordinary sites.
+ */
+export function lastRealCapture(
+  captures: readonly Capture[],
+  stubDigest: string | undefined,
+): Capture | null {
+  const working = captures.filter((c) => c.statusCode === 200);
+  if (stubDigest === undefined) {
+    return mostRecent(working);
+  }
+  const different = working.filter(
+    (c) => c.digest !== undefined && c.digest !== stubDigest,
+  );
+  return mostRecent(different.length > 0 ? different : working);
 }
 
 /**

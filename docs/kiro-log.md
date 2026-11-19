@@ -1287,3 +1287,41 @@ test first where testable; full suite + typecheck + lint green after each.
   exists (`20051230162231`, 200, `application/x-shockwave-flash`).
 - Verified: 312 tests pass (+3), typecheck and lint clean. That a real `.swf`
   actually paints is browser-only; added to the demo re-check list.
+
+## Task 51 — Death date excludes redirect stubs
+
+- Problem (browser re-test, Wayback MCP for lookups): the app read "Died on
+  20 December 2011" for `http://kids.msfc.nasa.gov/`, and `demo-urls.md` guessed
+  26 September 2007. Checking the live CDX with the MCP server showed both dates
+  are the *same* 714-byte JavaScript redirect stub
+  (`window.location.href='http://www.nasa.gov/.../kidsclub/flash/index.html'`,
+  CDX digest `CGDP…`). The stub served HTTP 200 from 15 April 2006 until its
+  last 200 on 20 December 2011. The real homepage (the one with Flash, digest
+  `HU24…`) was last captured as real content on **12 April 2006**. So "most
+  recent 200" lands on a parked placeholder, not the real site.
+- Rule decided and documented (R2.7, design §6): a redirect stub is a 200 page
+  whose only effect is to navigate elsewhere (meta refresh or a body-level
+  `window.location`/`location.replace`) and that carries little real content.
+  When the most recent 200 capture is such a stub, the death date and the
+  default view are the most recent status-200 capture whose CDX content digest
+  differs — the last capture of the real site. The capture picker still lists
+  every saved day, so the stub stays reachable.
+- Built:
+  - `Capture.digest?` + `parseCdxRows` now fills field index 5 (additive;
+    `exactOptionalPropertyTypes`-safe, only set when present).
+  - `core/redirect-stub.classifyRedirectStub(html)` — pure regex detector for
+    meta-refresh and JS location redirects, guarded by a visible-text length
+    cap so a real page that merely reads `location` is not misclassified.
+  - `core/capture-select.lastRealCapture(captures, stubDigest)` — most recent
+    200 with a different known digest, falling back to the newest 200.
+  - `recover` classifies the default newest-200 snapshot; when it is a stub and
+    an earlier real capture exists, it shows and dates that capture instead. One
+    extra snapshot fetch, default path only; an explicit picker choice is shown
+    as-is.
+- Kiro features used: spec-first (R2.7, design §6), test-first (redirect-stub
+  detector, `lastRealCapture`, and a recover integration test asserting the
+  shown capture + death date are the real one and that a picked stub is shown
+  as-is), the Wayback MCP server (`cdx_search`, `check_capture`) plus a few
+  one-shot CDX/snapshot requests to establish the digest timeline.
+- `demo-urls.md` updated to 12 April 2006 and the real behaviour.
+- Verified: 324 tests pass (+12), typecheck and lint clean.

@@ -16,25 +16,37 @@ sequentially. Dates below are computed from real CDX rows, not guessed.
 ## 1. Flash demo (and capture picker): NASA Kids
 
 - URL: `http://kids.msfc.nasa.gov/`
-- Last working capture (the "died on" date): **26 September 2007**
-  (timestamp `20070926030055`, HTTP 200).
-- Flash-bearing capture: **30 December 2005** (`20051230162224`). That capture
-  embeds two Flash files on the home page:
-  - `http://kids.msfc.nasa.gov/HPAgain3.swf?inclub=&canlogin=`
-  - `http://kids.msfc.nasa.gov/HPAgain4.swf?inclub=&canlogin=`
-- `HPAgain3.swf` has a confirmed working capture at `20051230162231`, HTTP 200,
-  content type `application/x-shockwave-flash`, so Ruffle has real Flash bytes
-  to play.
-- Why this page: it shows two features at once. The default view (the newest
-  working capture, 2007) is a plain page with **no Flash**; the 2005 captures
-  do have Flash. So the demo exercises the capture picker (task 30): open the
-  page, then pick the **2005** capture to see Flash play through Ruffle. The
-  `find_swf` 2007 scan returned zero `.swf`, confirming the newest capture has
-  no Flash, which is why the picker matters here.
+- Last working capture of the real site (the "died on" date): **12 April 2006**
+  (timestamp `20060412014409`, HTTP 200, CDX digest `HU24…`).
+- What the archive actually holds (checked live with the Wayback MCP server and
+  a few one-shot CDX/snapshot requests on 20 November 2026):
+  - The real NASA Kids homepage — the one that embeds the Flash — was captured
+    from 2005 until **12 April 2006** (all sharing CDX digest `HU24…`, ~1.5 KB
+    of HTML with two `<object>/<embed>` Flash movies).
+  - From **15 April 2006** the URL served a 714-byte JavaScript redirect stub
+    (`window.location.href='http://www.nasa.gov/audience/forkids/kidsclub/flash/index.html'`,
+    CDX digest `CGDP…`). That stub kept returning **HTTP 200** until
+    **20 December 2011**, after which captures are 301 redirects and revisits.
+  - So "most recent 200" is the redirect stub, not the real site. An earlier
+    draft of this file guessed 26 September 2007 as the death date; that is also
+    the stub, not real content.
+- How Seance handles it now (task 51, R2.7): the redirect-stub rule recognises
+  that the newest 200 is a bare redirect stub and selects the most recent
+  real-content capture instead, for both the default view and the death date.
+  So the certificate reads **12 April 2006**, and the default Restored pane
+  shows the real Flash homepage rather than a page that bounces to nasa.gov.
+- Flash: the real homepage embeds two movies,
+  `http://kids.msfc.nasa.gov/HPAgain3.swf?inclub=&canlogin=` and
+  `HPAgain4.swf?inclub=&canlogin=`. `HPAgain3.swf` has a confirmed 200 capture
+  at `20051230162231` (`application/x-shockwave-flash`), and the `/api/swf`
+  proxy serves its bytes (FWS, 32,896 bytes). The embeds size the stage at
+  `width="90%" height="90%"`, so task 50 adds a stage-height rule and a Ruffle
+  base so the player is not collapsed to a thin strip.
 
-Demo script: paste `http://kids.msfc.nasa.gov/`, read the certificate (died 26
-September 2007), then use "Reach an older copy" to open a 30 December 2005
-capture and watch the Flash play.
+Demo script: paste `http://kids.msfc.nasa.gov/`. The default view is now the
+real homepage (captured 12 April 2006) with the Flash; the certificate reads
+"died 12 April 2006". Use "Reach an older copy" to browse other captures,
+including the 30 December 2005 one.
 
 ## 2. Plain HTML death certificate: NASA Spacelink
 
@@ -58,10 +70,11 @@ capture and watch the Flash play.
 
 ## Needs a human in a real browser (run `npm run dev`)
 
-- NASA Kids: the 30 December 2005 capture renders, the certificate reads "died
-  26 September 2007", and `HPAgain3.swf` plays via Ruffle inside the sandboxed
-  restored frame (WebAssembly load + playback can only be confirmed in a
-  browser).
+- NASA Kids: the default view shows the real 12 April 2006 homepage (not the
+  redirect stub), the certificate reads "died 12 April 2006", and
+  `HPAgain3.swf` plays via Ruffle inside the sandboxed restored frame — the
+  stage is visible (not a thin strip) and the player paints (WebAssembly load +
+  playback can only be confirmed in a browser).
 - NASA Spacelink: the certificate reads "died 31 January 2005", and the
   recovery percentage and missing-asset list reflect what actually loaded.
 - Both: the restored page fits the pane at 375px and in the desktop pane; the

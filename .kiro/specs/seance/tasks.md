@@ -469,7 +469,7 @@ against the live Internet Archive after Phase 10, with the Wayback MCP server
 used for the archive lookups. Spec first, a failing test first where testable,
 one commit per task; tests and typecheck pass after each.
 
-50. [ ] **Make the NASA Kids Flash stage visible.** On `http://kids.msfc.nasa.gov/`
+50. [x] **Make the NASA Kids Flash stage visible.** On `http://kids.msfc.nasa.gov/`
     at the 30 December 2005 capture the two embeds are
     `<object>/<embed>` with `width="90%" height="90%"`, so in a document whose
     body has no resolved height the stage collapses to a thin strip and no
@@ -483,7 +483,7 @@ one commit per task; tests and typecheck pass after each.
       `base:"<archive prefix>"` before the loader; neither is present for a page
       with no Flash. The SWF loading standalone is browser-only (checklist).
 
-51. [ ] **Death date excludes redirect stubs.** `http://kids.msfc.nasa.gov/`
+51. [x] **Death date excludes redirect stubs.** `http://kids.msfc.nasa.gov/`
     served a 714-byte JavaScript redirect stub
     (`window.location.href='http://www.nasa.gov/.../kidsclub/flash/index.html'`)
     from 15 April 2006 until its last HTTP 200 on 20 December 2011; the real
