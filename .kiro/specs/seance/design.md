@@ -247,6 +247,14 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   from CSS `url(...)` (in `<style>` or inline `style`) are rewritten for
   confinement but are not individually enumerated in the report, to keep the
   recovery count bounded.
+- Zero-content tracking pixels are excluded from accounting (R4.7, task 45). An
+  `<img>` whose declared `width` and `height` are both 0 or 1 is a web bug (e.g.
+  GeoCities `visit.gif`, `geo.yahoo.com/serv`); its `src` is still rewritten to
+  the archive for confinement, but it is not recorded as an asset, so it counts
+  toward neither recovered nor missing nor the total. This matches the
+  render-time image guard that hides 1×1/0×0 images (R3.13), so the certificate
+  count equals what the page shows. An image with no declared size is still
+  counted; the render guard still hides it if it loads at 1×1/0×0.
 - `<base>` tags are removed or neutralised so they cannot redirect resolution
   off the archive.
 - `<frame src>` is rewritten alongside `<iframe src>` so archived framesets
@@ -290,7 +298,13 @@ injects three app-controlled pieces. All are constants, never archived content.
   width so the page fits. It only scales down (`k = min(1, innerWidth/scrollWidth)`),
   re-measures on `resize`, and uses `transform` (not `zoom`) so pointer events
   still reach Ruffle and links. Reduced-motion is respected by having no
-  transition.
+  transition. Ruffle mounts asynchronously and replaces each Flash embed with
+  its own player element at the movie's natural width (e.g. 550px) after the
+  first fit ran, so the script also re-fits when the document's child nodes
+  change (a `MutationObserver` on `childList`/`subtree`; the embed → player swap
+  is a child-node mutation, so it does not loop on fit's own `body.style`
+  writes) and a few times on a short timer to catch the player sizing itself
+  once the `.swf` loads (task 43, R3.12).
 - **Image guard (R3.13, task 39).** A capture-phase `load`/`error` listener on
   the document: an image that loads at 1×1 or 0×0 (a tracking pixel, no content)
   is hidden; an image that fails to load is replaced with a small styled
@@ -367,7 +381,12 @@ so a 10px embed never shows a clipped red strip.
 - Run readability on a clone of the parsed DOM (readability mutates its input).
 - Rewrite asset URLs in the extracted content with the same rewriter (R7.4).
 - If no article is found, show the plain "no readable article" notice and keep
-  the restored view (R7.3).
+  the restored view (R7.3). The shell collapses the reader note to a small line
+  and gives the restored view the full pane width in that case, rather than
+  leave an empty half-width card next to the restored page (task 44). The pure
+  `ui/result-layout.resultPanesClass(readerOk)` returns the panes container
+  class (`panes` vs `panes panes--solo`); `panes--solo` is one full-width
+  column at every width.
 
 ## 11. Error states
 

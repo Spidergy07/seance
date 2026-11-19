@@ -88,7 +88,10 @@ load from the archive, so that it looks and works like the original.
   layouts, e.g. 500–800px tables or a 550px Flash stage), THE SYSTEM SHALL scale
   the restored document down to fit the pane width, SHALL re-measure and rescale
   on resize, and SHALL only scale down (never enlarge), keeping the content
-  readable and Flash interactive.
+  readable and Flash interactive. The Ruffle player replaces each Flash embed
+  with its own element at the movie's natural width after the page first
+  renders, so THE SYSTEM SHALL re-measure and rescale after that element is
+  inserted, not only on load and resize.
 - R3.13 WHEN an image in the restored view carries no content (its rendered
   size is 1×1 or 0×0, a tracking pixel), THE SYSTEM SHALL hide it. WHEN an
   image in the restored view fails to load, THE SYSTEM SHALL replace it with a
@@ -116,6 +119,12 @@ can trust what I am seeing.
 - R4.6 WHERE an asset's archived lookup yields only redirects (3xx) or other
   non-200 responses, THE SYSTEM SHALL report it as not recovered. Only a
   working (status-200) capture counts as recovered.
+- R4.7 WHERE a referenced image is a zero-content tracking pixel (declared
+  width and height both 0 or 1), THE SYSTEM SHALL NOT count it toward recovered,
+  missing, or the total. The restored view hides such pixels at render time
+  (R3.13), so excluding them from accounting keeps the certificate's count equal
+  to what the page shows. An image with no declared size is still counted; the
+  render-time guard still hides it if it loads at 1×1 or 0×0.
 
 ## R5 — Death certificate panel
 **User story:** As a visitor, I want a clear summary of when the site died and
@@ -171,7 +180,9 @@ that I can read the content without broken layout.
 - R7.2 THE SYSTEM SHALL show the restored view and the reader view together on
   wide screens, and SHALL stack them (reader first) on narrow screens.
 - R7.3 IF readability extraction finds no article content, THE SYSTEM SHALL say
-  so plainly and SHALL still show the restored view.
+  so plainly and SHALL still show the restored view. WHERE there is no article,
+  THE SYSTEM SHALL collapse the reader note to a small line and give the
+  restored view the full pane width, rather than leave an empty half-width card.
 - R7.4 THE SYSTEM SHALL rewrite asset URLs inside the reader view with the same
   rewriter, so reader-view images also load from the archive.
 

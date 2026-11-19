@@ -393,3 +393,71 @@ first, tests and typecheck pass after each.
     - Tests (first): each panel renders its themed heading and its literal
       meaning as a separate subtitle element, and the heading text carries no
       em dash.
+
+
+## Phase 10 — Polish, MCP server, write-up
+
+Found by a human re-testing the running app (Chrome) after Phase 9, plus two
+deepen-Kiro items (a local MCP server and the Devpost write-up). Spec first, a
+failing test first where testable, one commit per task; tests and typecheck
+pass after each.
+
+43. [ ] **Re-fit the Flash stage after Ruffle mounts.** The 550px homestarrunner
+    Flash stage was still clipped on the right in the ~546px desktop Restored
+    pane: fit-to-width ran on load, but Ruffle later replaced the embed with its
+    own player element at the movie's natural width, so the page overflowed
+    again. Extend `FIT_TO_WIDTH_SCRIPT` to re-measure and rescale when the
+    document's child nodes change (a `MutationObserver` on `childList`/`subtree`,
+    which the embed → player swap triggers) and a few times on a short timer,
+    not only on load and resize. [R3.12, D8.1]
+    - Tests (first): the built srcdoc carries a `MutationObserver` observing
+      `childList`, in addition to the `scrollWidth`/`resize`/`scale(` wiring.
+
+44. [ ] **Collapse the empty reader; give Restored the full width.** When
+    readability finds no article the Reader card still took half the width next
+    to Restored. Collapse the reader note to a small line and give the restored
+    view the full pane width in that case. [R7.3, D10]
+    - Tests (first): pure `resultPanesClass(readerOk)` returns `panes` with an
+      article and `panes panes--solo` without; a theme.css guard asserts
+      `.panes--solo` is a single full-width column; the empty ReaderPane renders
+      a compact note.
+
+45. [ ] **Exclude zero-content tracking pixels from accounting.** 1×1/0×0
+    tracking images (now hidden at render, R3.13) must not count toward
+    recovered, missing, or the total, so the certificate number matches what the
+    page shows. In the document rewriter, an `<img>` with declared width and
+    height both 0 or 1 has its `src` rewritten for confinement but is not
+    recorded as an asset. [R4.7, D6, D7]
+    - Tests (first): a fixture `<img width=1 height=1>` is rewritten to the
+      archive but absent from the collected assets; a normal image is still
+      collected; a `width=0 height=0` pixel is excluded too.
+
+46. [ ] **Wayback MCP server.** Build a small local MCP server in
+    `tools/wayback-mcp/` (TypeScript, stdio, the official MCP SDK, installed
+    locally) exposing `cdx_search` (url, from, to, limit; status-200 filter,
+    one capture per day), `find_swf` (url, year; archived `.swf` files a capture
+    references), and `check_capture` (url, timestamp; status of one capture). It
+    reuses `src/core` and the `api` timeout/retry helper, with the same
+    rate-limit care, and performs no persistence. [tech.md, R9.1, R9.5]
+    - Tests (first): the three tool handlers with a mocked fetch — row parsing +
+      day collapse, `.swf` detection from fixture HTML, a single capture's
+      status; a non-archive host is rejected.
+
+47. [ ] **Register the MCP server for Kiro.** Add `.kiro/settings/mcp.json`
+    pointing at the local server and list it in the `seance` agent config so
+    Kiro can call it. [tech.md]
+    - Check: `mcp.json` parses; the agent config references the server.
+
+48. [ ] **Find demo URLs with the MCP server.** Use the server (at most 25
+    archive requests total) to find brand-safe demo URLs from public-domain
+    sources (e.g. NASA/NOAA pages, 1998–2008): ideally one with an archived
+    `.swf` that plays and one plain HTML page with a clear "died" date and some
+    missing assets. Record the URLs, timestamps, and reasons in
+    `docs/demo-urls.md`. [product.md success criteria]
+
+49. [ ] **Write the Kiro write-up.** Write `docs/kiro-writeup.md` for the
+    Devpost "how Kiro was used" field from `docs/kiro-log.md` and git history:
+    the Kiro surface and custom agent, the postToolUse test hook, spec-driven
+    development vs vibe coding, steering docs, the MCP server, property-based
+    testing, and `kiro-cli powers`. Plain English, no hype, no em dashes, claims
+    verifiable from the repo. [docs]
