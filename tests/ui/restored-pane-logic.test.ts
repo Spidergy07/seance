@@ -117,6 +117,19 @@ describe('buildRestoredSrcDoc', () => {
     expect(out).toContain('Math.min(1');
   });
 
+  it('re-fits after Ruffle mounts by observing DOM changes (task 43, R3.12)', () => {
+    // Ruffle replaces the Flash embed with its own player element at the
+    // movie's natural width after the first fit ran, so the page overflows
+    // again. The fit script must re-measure when the document's child nodes
+    // change, not only on load and resize.
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><object data="x.swf"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC },
+    );
+    expect(out).toContain('MutationObserver');
+    expect(out).toContain('childList');
+  });
+
   it('styles the injected notices so they are not default serif text (R3.14)', () => {
     const out = buildRestoredSrcDoc(
       '<!doctype html><html><head></head><body></body></html>',

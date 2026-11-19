@@ -150,7 +150,10 @@ export const RUFFLE_ERROR_GUARD_SCRIPT =
  * document's true width against the frame's own width and, when the content is
  * wider, scales the body down with a CSS `transform` (never `zoom`, so pointer
  * events still reach Ruffle and links). It only ever scales down. There is no
- * transition, so it adds no motion.
+ * transition, so it adds no motion. It re-fits on resize, and also when the
+ * document's child nodes change, because Ruffle replaces each Flash embed with
+ * its own player element at the movie's natural width after the first fit (task
+ * 43).
  */
 export const FIT_TO_WIDTH_SCRIPT =
   '<script>(function(){' +
@@ -163,8 +166,23 @@ export const FIT_TO_WIDTH_SCRIPT =
   'var k=Math.min(1,vw/sw);' +
   'if(k<1){b.style.transformOrigin="0 0";' +
   'b.style.transform="scale("+k+")";b.style.width=(100/k)+"%";}}' +
-  'window.addEventListener("resize",fit);' +
-  'window.addEventListener("load",fit);' +
+  // Coalesce bursts of calls into one fit on the next frame.
+  'var pending=false;function schedule(){if(pending)return;pending=true;' +
+  '(window.requestAnimationFrame||window.setTimeout)(function(){' +
+  'pending=false;fit();});}' +
+  'window.addEventListener("resize",schedule);' +
+  'window.addEventListener("load",schedule);' +
+  // Ruffle mounts asynchronously and replaces each Flash embed with its own
+  // player element at the movie's natural width, overflowing the pane after the
+  // first fit. Re-fit when the document's child nodes change (the embed → player
+  // swap is a child-node mutation; fit only writes body.style, an attribute, so
+  // observing childList/subtree does not loop on our own changes).
+  'if(typeof MutationObserver!=="undefined"){' +
+  'new MutationObserver(schedule).observe(document.documentElement,' +
+  '{childList:true,subtree:true});}' +
+  // And a few delayed fits to catch the player sizing itself once the .swf
+  // finishes loading, which can happen after the insertion mutation.
+  'var ts=[300,900,1800];for(var i=0;i<ts.length;i++){setTimeout(fit,ts[i]);}' +
   'if(document.readyState!=="loading"){fit();}' +
   'else{window.addEventListener("DOMContentLoaded",fit);}' +
   '})();</script>';
