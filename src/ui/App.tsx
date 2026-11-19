@@ -11,6 +11,7 @@ import { UrlInput } from './UrlInput.js';
 import { RestoredPane } from './RestoredPane.js';
 import { ReaderPane } from './ReaderPane.js';
 import { DeathCertificate } from './DeathCertificate.js';
+import { CapturePicker } from './CapturePicker.js';
 import { StatusBanner } from './StatusBanner.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import { formatCaptureDate } from './format.js';
@@ -19,11 +20,11 @@ import type { AppPhase, RecoveryOutcome } from './types.js';
 
 export interface AppProps {
   /** Run one recovery. Defaults to the browser pipeline. Injected in tests. */
-  recover?: (url: string) => Promise<RecoveryOutcome>;
+  recover?: (url: string, timestamp?: string) => Promise<RecoveryOutcome>;
 }
 
-function defaultRecover(url: string): Promise<RecoveryOutcome> {
-  return recover(url, browserRecoverDeps());
+function defaultRecover(url: string, timestamp?: string): Promise<RecoveryOutcome> {
+  return recover(url, browserRecoverDeps(), timestamp !== undefined ? { timestamp } : {});
 }
 
 /** Build the error phase, including only the optional fields that are present. */
@@ -73,14 +74,14 @@ export function App(props: AppProps) {
   const runId = useRef(0);
 
   const start = useCallback(
-    async (url: string) => {
+    async (url: string, timestamp?: string) => {
       const id = runId.current + 1;
       runId.current = id;
       setPhase({ status: 'running', url });
 
       let outcome: RecoveryOutcome;
       try {
-        outcome = await runRecovery(url);
+        outcome = await runRecovery(url, timestamp);
       } catch {
         outcome = {
           ok: false,
@@ -166,6 +167,11 @@ export function App(props: AppProps) {
               />
             )}
             <DeathCertificate report={phase.view.report} />
+            <CapturePicker
+              captures={phase.view.captures}
+              selectedTimestamp={phase.view.selectedCapture.timestamp}
+              onPick={(timestamp) => start(phase.view.pageOriginalUrl, timestamp)}
+            />
             <div className="panes">
               {/* Reader is first in the DOM so it leads when the panes stack
                   on a narrow screen (R7.2). */}

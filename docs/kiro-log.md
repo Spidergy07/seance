@@ -764,3 +764,26 @@ was built, which Kiro features were used, and any problem hit.
   `now` (recent → alive copy, old → death date). Wrote tests first, then
   implemented.
 - Verified: `npm run typecheck` clean; full suite 224 passing.
+
+
+## Task 30 — Capture picker for older captures (fix round)
+
+- Bug: no way to open an older capture. Archived Flash on homestarrunner only
+  exists in 2004–2006 captures, but the app always used the newest, so the
+  `.swf` could never be shown with Ruffle.
+- Fix:
+  - Core: `selectByTimestamp(captures, ts)` (pure) returns the exact capture.
+  - Pipeline: `recover(url, deps, { timestamp })` opens a chosen capture instead
+    of the newest working one, and the recovery view now carries `captures`
+    (the de-duplicated, newest-first list) for the picker.
+  - UI: `src/ui/capture-picker-logic.ts` (`groupCapturesByYear`, pure) and
+    `src/ui/CapturePicker.tsx` — two native `<select>` controls (year, then
+    saved date) and an "Open this copy" button. Native controls keep it
+    keyboard operable; CSS stacks the controls full-width under 30rem (375px).
+  - App wires the picker's `onPick` to re-run recovery for the same URL at the
+    chosen timestamp.
+- Spec: design §5 (`selectByTimestamp`, grouping); tasks.md task 30; R2.4.
+- Tests (offline): `capture-picker-logic.test.ts` (grouping + `selectByTimestamp`)
+  and `capture-picker.test.ts` (renders years/dates, hides itself for a single
+  capture). Wrote tests first, then implemented.
+- Verified: `npm run typecheck` clean; full suite 230 passing.

@@ -12,7 +12,7 @@ import type { ArchiveClientDeps } from '../archive/cdx-client.js';
 import { fetchSnapshot } from '../archive/snapshot-client.js';
 import { createCaptureLookup } from '../archive/capture-lookup.js';
 import type { ClientErrorKind } from '../archive/result.js';
-import { selectCapture } from '../core/capture-select.js';
+import { selectCapture, selectByTimestamp, byDate } from '../core/capture-select.js';
 import { buildRecoveryReport } from '../core/recovery.js';
 import { rewriteDocument } from '../dom/rewrite-document.js';
 import { resolveAssetStatuses } from '../dom/asset-status.js';
@@ -38,6 +38,16 @@ export interface RecoverDeps {
   lookupConcurrency?: number;
 }
 
+/** Options for a single recovery run. */
+export interface RecoverOptions {
+  /**
+   * Open this exact capture (14-digit Wayback timestamp) instead of the most
+   * recent working one. Used by the capture picker (R2.4). Ignored when no
+   * capture has that timestamp.
+   */
+  timestamp?: string;
+}
+
 /** Map an archive client failure onto a recovery error kind (design.md §11). */
 function mapClientError(kind: ClientErrorKind): RecoveryErrorKind {
   switch (kind) {
@@ -58,10 +68,16 @@ function mapClientError(kind: ClientErrorKind): RecoveryErrorKind {
  * Recover a dead page: find the closest working capture, rewrite it to load
  * from the archive, account for what came back, and extract a reader view.
  * Returns a typed outcome; it never throws for an expected failure.
+ *
+ * When `options.timestamp` is given, Seance opens that specific capture instead
+ * of the most recent working one, so the capture picker can show an older
+ * version (R2.4). The "last working capture" used for the certificate is still
+ * the most recent 200, regardless of which capture is shown.
  */
 export async function recover(
   originalUrl: string,
   deps: RecoverDeps,
+  options: RecoverOptions = {},
 ): Promise<RecoveryOutcome> {
   const archiveDeps: ArchiveClientDeps = { fetch: deps.fetch };
   if (deps.baseUrl !== undefined) {
@@ -74,14 +90,22 @@ export async function recover(
   }
 
   const selection = selectCapture(captures.value);
-  if (selection.best === null) {
+
+  // A specific capture was requested (the picker): use it if it exists.
+  const requested =
+    options.timestamp !== undefined
+      ? selectByTimestamp(captures.value, options.timestamp)
+      : null;
+
+  const selected = requested ?? selection.best;
+  if (selected === null) {
     if (selection.fallback === null) {
       return { ok: false, kind: 'no-captures' };
     }
     return { ok: false, kind: 'no-working-capture', fallbackCapture: selection.fallback };
   }
 
-  const selected = selection.best;
+  const captureList = byDate(captures.value);
   const snapshot = await fetchSnapshot(selected.originalUrl, selected.timestamp, archiveDeps);
   if (!snapshot.ok) {
     return { ok: false, kind: mapClientError(snapshot.error.kind), detail: snapshot.error.message };
@@ -136,6 +160,7 @@ export async function recover(
     view: {
       pageOriginalUrl: selected.originalUrl,
       selectedCapture: selected,
+      captures: captureList,
       report,
       restoredHtml: deps.serialize(restoredDoc),
       reader,

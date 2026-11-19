@@ -164,6 +164,11 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 - If no 200 rows, return `{ best: null, fallback: mostRecentAny }` so the UI can
   offer a best-effort non-200 capture. (R2.3)
 - `byDate(rows)`: de-duplicated, sorted list for the capture picker. (R2.4)
+- `selectByTimestamp(rows, ts)`: the capture with that exact timestamp, or null.
+  The capture picker uses it to open an older capture the visitor chose; the
+  recovery pipeline passes the chosen timestamp through `recover(..., {
+  timestamp })`. `ui/capture-picker-logic.groupCapturesByYear` groups `byDate`
+  output by year for the picker's year→date controls (R2.4).
 
 ## 6. Recovery accounting (core/recovery.ts)
 - Input: the list of `AssetResult`s produced while rewriting + checking.

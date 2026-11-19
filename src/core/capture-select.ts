@@ -86,6 +86,17 @@ export function byDate(captures: readonly Capture[]): Capture[] {
   return unique;
 }
 
+/**
+ * The capture whose timestamp exactly matches `timestamp`, or null if none.
+ * Used by the capture picker to open a specific earlier capture (R2.4).
+ */
+export function selectByTimestamp(
+  captures: readonly Capture[],
+  timestamp: string,
+): Capture | null {
+  return captures.find((c) => c.timestamp === timestamp) ?? null;
+}
+
 export interface CaptureSelection {
   /** Most recent status-200 capture, or null if none. */
   best: Capture | null;

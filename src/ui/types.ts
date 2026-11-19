@@ -25,6 +25,11 @@ export interface RecoveryView {
   pageOriginalUrl: string;
   /** The capture actually used to rebuild the page. */
   selectedCapture: Capture;
+  /**
+   * All captures of the page, de-duplicated and newest first, for the capture
+   * picker so the visitor can open an older version (R2.4).
+   */
+  captures: Capture[];
   /** The recovery report (death-certificate data). */
   report: RecoveryReport;
   /** The full rewritten document HTML for the sandboxed Restored pane. */

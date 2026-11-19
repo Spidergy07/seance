@@ -647,6 +647,84 @@ a {
   color: var(--candle);
 }
 
+/* --- Capture picker ------------------------------------------------------- */
+.picker {
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+  margin: var(--s-4) 0;
+}
+.picker__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+.picker__literal {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--ink-dim);
+  margin-top: var(--s-1);
+}
+.picker__note {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  margin: var(--s-2) 0 var(--s-3);
+}
+.picker__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: flex-end;
+}
+.picker__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+.picker__label {
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+.picker__select {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  font: inherit;
+}
+.picker__open {
+  flex: 0 0 auto;
+  padding: var(--s-2) var(--s-4);
+  background: var(--candle-deep);
+  color: var(--ink);
+  border: 1px solid var(--candle);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+}
+.picker__open:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.picker__select:focus-visible,
+.picker__open:focus-visible {
+  outline: 2px solid var(--candle);
+  outline-offset: 2px;
+}
+@media (max-width: 30rem) {
+  .picker__field,
+  .picker__open {
+    flex: 1 1 100%;
+  }
+}
+
 /* --- Credits -------------------------------------------------------------- */
 .credits {
   border-top: 1px solid var(--panel-edge);
