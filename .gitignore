@@ -5,3 +5,11 @@ coverage/
 .DS_Store
 .vite/
 .vercel
+
+# Editor and backup leftovers
+*.bak
+*.orig
+*.tmp
+*.old
+*~
+*.swp

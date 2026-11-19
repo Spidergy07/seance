@@ -1494,3 +1494,35 @@ test first where testable; full suite + typecheck + lint green after each.
   task-55 logging + `vercel logs --json` to find each cause rather than guess,
   voice.md (user-facing messages unchanged and plain).
 - Verified locally: 342 tests pass (+3), typecheck, lint, and build clean.
+
+## Phase 12 — Final repo cleanup before submission
+
+### Task 57 — Remove leftovers, tighten .gitignore
+
+- Problem: `.kiro/agents/seance.json.bak` was committed by accident in task 1
+  (the first commit) and stayed in the tree. It is a stale copy of the agent
+  config from before the Wayback MCP server was added, so it duplicates
+  `.kiro/agents/seance.json` with out-of-date `tools`/`allowedTools` and no
+  `mcpServers` block. Nothing reads it.
+- Fix:
+  - `git rm .kiro/agents/seance.json.bak`.
+  - Added backup/editor-leftover patterns to `.gitignore` (`*.bak`, `*.orig`,
+    `*.tmp`, `*.old`, `*~`, `*.swp`) so the same class of file cannot be
+    committed again.
+- Repo scan for other leftovers (none removed; recorded why each stays):
+  - No `*.bak`/`*.orig`/`*.tmp`/`*~`/`*.swp` elsewhere; working tree clean,
+    no untracked files.
+  - No stale `TODO`/`FIXME`/`XXX`/`HACK` notes in source (the one grep hit is a
+    base64 integrity hash in a lockfile).
+  - The two `console.error` calls in source are intentional: the result error
+    boundary (task 37) and the proxy failure logger (task 55).
+  - All nine test fixtures under `tests/fixtures/` are referenced by at least
+    one test.
+  - `tools/wayback-mcp/mcp.json` is a kept template (its README and the
+    write-up document copying it to `.kiro/settings/mcp.json`), not a leftover.
+  - `tools/wayback-mcp/scripts/demo-probe.ts` is the documented one-shot driver
+    used in task 48; `docs/demo-urls.md` and the write-up reference it, so it
+    stays.
+- Kiro features used: the `seance` agent and its postToolUse test hook; this is
+  a repo-hygiene task, so no spec/requirement is cited.
+- Verified: 342 tests pass, typecheck, lint, and build clean.
