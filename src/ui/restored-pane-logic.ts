@@ -180,14 +180,40 @@ export interface RestoredSrcDocOptions {
 }
 
 /**
- * Inject the Ruffle config and loader into the document head (falling back to
- * the body open tag, then prepend). The config is placed before the loader so
- * Ruffle reads it on start (R6.7). Ruffle's self-hosted build polyfills
- * `<object>` and `<embed>` `.swf` references once it loads. The URLs/scripts
- * here are app-controlled constants, not archived content.
+ * A self-contained style for every notice Seance injects into the restored
+ * document (R3.14): the stopped-redirect note (`data-seance-refresh`), the
+ * Flash notices (`data-seance-flash`), and the image placeholder
+ * (`data-seance-img`). The archived page has no access to the app's theme.css,
+ * so the colours are literal here. Each notice carries its own dark background,
+ * light ink, candle-amber accent, and sans-serif face, so it reads clearly on a
+ * light or dark archived page instead of inheriting the page's default serif.
  */
-function injectRuffle(html: string, url: string): string {
-  const tag = `${RUFFLE_CONFIG_SCRIPT}<script src="${url}"></script>`;
+export const NOTICE_STYLE =
+  '<style>' +
+  '[data-seance-refresh],[data-seance-flash]{' +
+  'display:block;margin:0 0 12px 0;padding:10px 14px;' +
+  'background:#171320;color:#ece6da;' +
+  'border:1px solid rgba(236,230,218,0.22);border-left:3px solid #f4b860;' +
+  'border-radius:6px;' +
+  "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" +
+  'font-size:14px;line-height:1.5;}' +
+  '[data-seance-refresh] a,[data-seance-flash] a{color:#f4b860;}' +
+  '[data-seance-img]{' +
+  'display:inline-block;padding:4px 8px;' +
+  'background:#171320;color:#a79e90;' +
+  'border:1px dashed #4d5f72;border-radius:4px;' +
+  "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;" +
+  'font-size:12px;line-height:1.4;}' +
+  '</style>';
+
+/**
+ * Inject head content (the notice style, and the Ruffle config + loader when
+ * present) before `</head>`, falling back to just after the `<body>` open tag.
+ * Returns null when the document has neither, so the caller can place the
+ * content in the body-end group instead of prepending it (which would disturb a
+ * bare fragment).
+ */
+function injectIntoHead(html: string, tag: string): string | null {
   const headEnd = /<\/head>/i;
   if (headEnd.test(html)) {
     return html.replace(headEnd, `${tag}</head>`);
@@ -196,17 +222,19 @@ function injectRuffle(html: string, url: string): string {
   if (bodyOpen.test(html)) {
     return html.replace(bodyOpen, (match) => `${match}${tag}`);
   }
-  return tag + html;
+  return null;
 }
 
 /**
  * Inject the click interceptor into a full HTML document string, before
  * `</body>` when present (falling back to `</html>`, then append). The script
- * is added last so it does not depend on load order. When `ruffleScriptUrl` is
- * given, the Ruffle config + loader are injected into the head first so
- * recovered Flash embeds play inside the sandboxed frame, and the Ruffle error
- * guard is injected alongside the interceptor so a failed embed degrades to the
- * plain notice (R6.7).
+ * is added last so it does not depend on load order. The notice style always
+ * goes into the head (R3.14); when `ruffleScriptUrl` is given, the Ruffle
+ * config + loader are injected into the head too so recovered Flash embeds play
+ * inside the sandboxed frame, and the Ruffle error guard is injected alongside
+ * the interceptor so a failed embed degrades to the plain notice (R6.7). The
+ * image guard (R3.13) and fit-to-width script (R3.12) are injected for every
+ * page.
  */
 export function buildRestoredSrcDoc(
   html: string,
@@ -215,10 +243,23 @@ export function buildRestoredSrcDoc(
   let out = html;
   const hasRuffle =
     options.ruffleScriptUrl !== undefined && options.ruffleScriptUrl !== '';
+
+  // Head content: the notice style, then (when the page has Flash) the Ruffle
+  // config before its loader so the polyfill reads the config on start (R6.7).
+  let headTag = NOTICE_STYLE;
   if (hasRuffle) {
-    out = injectRuffle(out, options.ruffleScriptUrl as string);
+    headTag += `${RUFFLE_CONFIG_SCRIPT}<script src="${options.ruffleScriptUrl as string}"></script>`;
   }
+  const headed = injectIntoHead(out, headTag);
+  // When there is no head or body to carry it, fold the head content into the
+  // body-end group so a bare fragment still starts with its own markup.
+  const bodyPrefix = headed === null ? headTag : '';
+  if (headed !== null) {
+    out = headed;
+  }
+
   const injected =
+    bodyPrefix +
     (hasRuffle ? RUFFLE_ERROR_GUARD_SCRIPT : '') +
     IMAGE_GUARD_SCRIPT +
     FIT_TO_WIDTH_SCRIPT +

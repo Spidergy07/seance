@@ -116,6 +116,22 @@ describe('buildRestoredSrcDoc', () => {
     // Only ever scales down, never enlarges.
     expect(out).toContain('Math.min(1');
   });
+
+  it('styles the injected notices so they are not default serif text (R3.14)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body></body></html>',
+    );
+    expect(out).toContain('<style');
+    // Rules for every notice Seance injects.
+    expect(out).toContain('[data-seance-refresh]');
+    expect(out).toContain('[data-seance-flash]');
+    expect(out).toContain('[data-seance-img]');
+    // Self-contained: its own background and font, so it reads on any page.
+    expect(out).toContain('background');
+    expect(out).toContain('font-family');
+    // The style lives in the head when there is one.
+    expect(out.indexOf('<style')).toBeLessThan(out.indexOf('</head>'));
+  });
 });
 
 describe('parseRestoredMessage (R3.8)', () => {
