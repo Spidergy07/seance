@@ -880,3 +880,41 @@ was built, which Kiro features were used, and any problem hit.
   bound in `tests/api/http.test.ts`, and retryable assertions in
   `tests/ui/status-banner.test.ts`.
 - Verified: full suite 250 passing; typecheck and lint clean.
+
+
+## Task 34 — Show progress while waiting (fix round)
+
+- Bug: during a recovery the shell showed one static line ("Holding the
+  seance. Searching the Internet Archive…") for the whole wait, so a slow run
+  looked hung.
+- Fix:
+  - New pure module `src/ui/progress.ts`: the `RecoveryStep` union, the
+    `RECOVERY_STEPS` order, and `recoveryStepLabel` — plain lines for each step
+    (contacting, retrieving, rebuilding, checking, reading).
+  - `recover` takes `options.onProgress` and calls it as it enters each step.
+  - The shell's `running` phase now carries the current `step`; `App` passes an
+    `onProgress` that updates the phase (guarded by the run id so a superseded
+    run cannot overwrite a newer one's line) and renders `recoveryStepLabel`
+    with the URL beneath it.
+- Spec: requirements R8.10; design §3.1 (progress note); tasks.md task 34.
+- Tests (offline, written first): `tests/ui/progress.test.ts` (labels +
+  order) and `tests/ui/recover-progress.test.ts` (a successful recovery reports
+  every step in order through `onProgress`).
+- Verified: full suite 254 passing; typecheck, lint, and `npm run build` clean.
+
+### Re-check in the browser once the rate limit clears
+These need a real browser against the live archive (listed so the human
+verifier knows what changed):
+- Recover a busy page (e.g. a GeoCities page with many images): the death
+  certificate reports a handful of `unknown` assets rather than hanging, and
+  the network panel shows only a few `/api/cdx` calls (≤6 total for a typical
+  page), not dozens.
+- Trigger rate limiting (recover a few pages quickly): the rate-limited banner
+  appears within a few seconds with a "Try again" control, instead of spinning;
+  a second recovery of the same URL makes no new `/api/cdx` request (served
+  from the session cache).
+- Watch the progress line change through the steps (reaching the archive →
+  retrieving → rebuilding → checking assets → reader) instead of one static
+  line.
+- Confirm the whole recovery finishes or fails within ~20s even when the
+  archive is slow, and that the earlier fixes (27–31) still hold.

@@ -22,6 +22,7 @@ import { extractReader } from '../dom/reader.js';
 import type { ReaderDeps } from '../dom/reader.js';
 import type { AssetStatus } from '../core/types.js';
 import type { RewriteContext } from '../core/url-rewriter.js';
+import type { RecoveryStep } from './progress.js';
 import type { RecoveryErrorKind, RecoveryOutcome } from './types.js';
 
 export interface RecoverDeps {
@@ -88,6 +89,11 @@ export interface RecoverOptions {
    * capture has that timestamp.
    */
   timestamp?: string;
+  /**
+   * Called as the recovery enters each step, so the shell can show which step
+   * is running (R8.10).
+   */
+  onProgress?: (step: RecoveryStep) => void;
 }
 
 /** Map an archive client failure onto a recovery error kind (design.md §11). */
@@ -151,6 +157,9 @@ async function runRecovery(
   archiveDeps: ArchiveClientDeps,
   options: RecoverOptions,
 ): Promise<RecoveryOutcome> {
+  const notify = options.onProgress ?? (() => {});
+
+  notify('contacting');
   const captures = await fetchCaptures(originalUrl, archiveDeps);
   if (!captures.ok) {
     return { ok: false, kind: mapClientError(captures.error.kind), detail: captures.error.message };
@@ -173,6 +182,7 @@ async function runRecovery(
   }
 
   const captureList = byDate(captures.value);
+  notify('retrieving');
   const snapshot = await fetchSnapshot(selected.originalUrl, selected.timestamp, archiveDeps);
   if (!snapshot.ok) {
     return { ok: false, kind: mapClientError(snapshot.error.kind), detail: snapshot.error.message };
@@ -185,9 +195,11 @@ async function runRecovery(
   };
 
   // Rewrite the restored document in place and collect its assets.
+  notify('rebuilding');
   const restoredDoc = deps.parseHtml(snapshot.value.body);
   const { assets } = rewriteDocument(restoredDoc, ctx);
 
+  notify('checking');
   const lookup = createCaptureLookup(
     archiveDeps,
     deps.lookupConcurrency !== undefined ? { concurrency: deps.lookupConcurrency } : {},
@@ -222,6 +234,7 @@ async function runRecovery(
   if (deps.createReadability !== undefined) {
     readerDeps.createReadability = deps.createReadability;
   }
+  notify('reading');
   const reader = extractReader(snapshot.value.body, ctx, readerDeps);
 
   return {

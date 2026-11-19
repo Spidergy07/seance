@@ -15,16 +15,32 @@ import { CapturePicker } from './CapturePicker.js';
 import { StatusBanner } from './StatusBanner.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import { formatCaptureDate } from './format.js';
+import { recoveryStepLabel, type RecoveryStep } from './progress.js';
 import type { BannerStatus } from './status-banner.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
 export interface AppProps {
   /** Run one recovery. Defaults to the browser pipeline. Injected in tests. */
-  recover?: (url: string, timestamp?: string) => Promise<RecoveryOutcome>;
+  recover?: (
+    url: string,
+    timestamp?: string,
+    onProgress?: (step: RecoveryStep) => void,
+  ) => Promise<RecoveryOutcome>;
 }
 
-function defaultRecover(url: string, timestamp?: string): Promise<RecoveryOutcome> {
-  return recover(url, browserRecoverDeps(), timestamp !== undefined ? { timestamp } : {});
+function defaultRecover(
+  url: string,
+  timestamp?: string,
+  onProgress?: (step: RecoveryStep) => void,
+): Promise<RecoveryOutcome> {
+  const options: Parameters<typeof recover>[2] = {};
+  if (timestamp !== undefined) {
+    options.timestamp = timestamp;
+  }
+  if (onProgress !== undefined) {
+    options.onProgress = onProgress;
+  }
+  return recover(url, browserRecoverDeps(), options);
 }
 
 /** Build the error phase, including only the optional fields that are present. */
@@ -77,11 +93,19 @@ export function App(props: AppProps) {
     async (url: string, timestamp?: string) => {
       const id = runId.current + 1;
       runId.current = id;
-      setPhase({ status: 'running', url });
+      setPhase({ status: 'running', url, step: 'contacting' });
+
+      const onProgress = (step: RecoveryStep) => {
+        // Drop progress from a superseded run, so a slow earlier recovery
+        // cannot overwrite the line of a newer one.
+        if (id === runId.current) {
+          setPhase({ status: 'running', url, step });
+        }
+      };
 
       let outcome: RecoveryOutcome;
       try {
-        outcome = await runRecovery(url, timestamp);
+        outcome = await runRecovery(url, timestamp, onProgress);
       } catch {
         outcome = {
           ok: false,
@@ -138,10 +162,8 @@ export function App(props: AppProps) {
         {phase.status === 'running' && (
           <section className="contacting" role="status" aria-live="polite">
             <span className="contacting__pulse" aria-hidden="true" />
-            <p className="contacting__line">
-              Holding the seance. Searching the Internet Archive for{' '}
-              <span className="contacting__url">{phase.url}</span>.
-            </p>
+            <p className="contacting__line">{recoveryStepLabel(phase.step)}</p>
+            <p className="contacting__url">{phase.url}</p>
           </section>
         )}
 

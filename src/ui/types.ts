@@ -4,6 +4,7 @@
 
 import type { Capture, RecoveryReport } from '../core/types.js';
 import type { ReaderResult } from '../dom/reader.js';
+import type { RecoveryStep } from './progress.js';
 
 /**
  * Why a recovery stopped short. Maps the archive client's failure kinds and
@@ -58,7 +59,7 @@ export type RecoveryOutcome =
 /** The shell's current screen. */
 export type AppPhase =
   | { status: 'idle' }
-  | { status: 'running'; url: string }
+  | { status: 'running'; url: string; step: RecoveryStep }
   | {
       status: 'error';
       url: string;

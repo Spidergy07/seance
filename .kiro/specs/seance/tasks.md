@@ -277,7 +277,7 @@ pass after each.
       worst-case wait; the rate-limited/timeout/outage/network banner content is
       retryable.
 
-34. [ ] **Show progress while waiting.** `recover` reports each step through an
+34. [x] **Show progress while waiting.** `recover` reports each step through an
     injected `onProgress` callback; the shell shows the current step's plain
     line (searching, retrieving, rebuilding, checking assets, reading) instead
     of one static message. [R8.10, R1.4, D3.1]
