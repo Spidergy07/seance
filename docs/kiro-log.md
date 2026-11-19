@@ -292,3 +292,35 @@ was built, which Kiro features were used, and any problem hit.
   R4.1/R4.2/R4.4/R8.6), `structure.md` (core holds the shared type; archive is
   the only network layer; dom defers to injected lookups).
 - Problems hit: none. 128 tests pass, typecheck and lint clean.
+
+## Task 15 — Reader view
+
+- Installed `@mozilla/readability@0.5.0` locally (pinned, a runtime dependency
+  per tech.md). It ships its own TypeScript types.
+- Implemented `src/dom/reader.ts`: `extractReader(html, ctx, deps)` parses a
+  fresh copy of the HTML, runs Readability on it (so it never mutates the
+  caller's restored document), and on success rewrites the extracted content's
+  asset URLs with `rewriteDocument` so reader-view images also load from the
+  archive (R7.4). Returns `{ ok: false, reason: 'no-article' }` when no article
+  is found (R7.3).
+- Parsing and the Readability factory are injectable: `DOMParser` in the
+  browser, `linkedom` in tests. The extracted content fragment is wrapped in a
+  document shell before re-parsing so `body.innerHTML` is reliable across DOM
+  implementations.
+- Tests (`tests/dom/reader.test.ts`, 4 cases, with new fixtures
+  `article.html` and `no-article.html`): title + body text extracted; a
+  root-relative reader-view image is rewritten to an archive URL; an
+  empty-body page returns the no-article result; and the no-article branch is
+  also exercised deterministically with an injected extractor stub.
+- Investigation note: under linkedom `document.baseURI` is null, so
+  Readability's own relative-URL fixing is skipped and the content keeps
+  relative/original URLs — exactly what our rewriter needs to point them at the
+  archive. Readability is lenient about short pages (it still extracted a nav
+  list), so the no-article fixture uses an empty body, which reliably yields a
+  null parse.
+- Kiro features used: the `seance` spec (`design.md` §10, `requirements.md`
+  R7.1/R7.3/R7.4), `tech.md` (readability choice), `structure.md` (dom/ reuses
+  the core rewriter via `rewriteDocument`).
+- Problems hit: the first no-article fixture (a nav page) still extracted
+  content; switched to an empty-body fixture after probing Readability's
+  behaviour under linkedom.

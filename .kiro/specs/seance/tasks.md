@@ -112,7 +112,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: fixture page with a mix of present/absent assets yields the
       expected statuses; unknown path covered.
 
-15. **Reader view.** Implement `src/dom/reader.ts` using readability on a DOM
+15. [x] **Reader view.** Implement `src/dom/reader.ts` using readability on a DOM
     clone, then rewrite its asset URLs. Handle the no-article case. [R7.1, R7.3,
     R7.4, D10]
     - Tests: fixture article extracts expected text; images in reader output
