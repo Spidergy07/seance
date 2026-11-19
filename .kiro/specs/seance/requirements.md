@@ -45,6 +45,10 @@ that I do not have to understand the archive myself.
   earlier capture by date.
 - R2.5 THE SYSTEM SHALL record the timestamp of the selected capture and the
   timestamp of the last working capture for the death certificate.
+- R2.6 WHERE the capture picker lists saved dates, THE SYSTEM SHALL show at most
+  one entry per calendar day by default, choosing a working (status-200) capture
+  for that day when one exists, so the same date is not repeated. The control
+  SHALL stay keyboard operable.
 
 ## R3 — Restore the page (link/asset rewriting)
 **User story:** As a visitor, I want the restored page's links and assets to
@@ -107,6 +111,11 @@ how much came back, so that I get the headline facts at a glance.
   full missing-asset list.
 - R5.4 THE SYSTEM SHALL show the selected capture's date when it differs from
   the last working capture.
+- R5.5 THE SYSTEM SHALL render the certificate without throwing for any recovery
+  report, treating an absent (null or undefined) selected or last-working
+  capture as "no working capture found" rather than crashing. WHERE any result
+  panel throws during render, THE SYSTEM SHALL contain the failure in an error
+  boundary that shows a plain message with a retry control, not a blank page.
 
 ## R6 — Flash playback with Ruffle
 **User story:** As a visitor, I want archived Flash content to play, so that
@@ -122,6 +131,19 @@ interactive or animated pages are not dead.
   not require any browser plugin.
 - R6.5 IF Ruffle fails to load or initialise, THE SYSTEM SHALL show a plain
   error and SHALL continue to render the rest of the page.
+- R6.6 THE SYSTEM SHALL serve archived `.swf` bytes to the in-frame Ruffle
+  player through its own same-origin proxy endpoint that sends
+  `Access-Control-Allow-Origin: *`, because the restored iframe runs in an
+  opaque origin and the archive does not send CORS headers for raw `.swf`
+  bytes. The proxy SHALL fetch only from `web.archive.org` and SHALL reject any
+  other host, so it is not an open proxy. THE SYSTEM SHALL rewrite `.swf`
+  `object`/`embed`/`param` references to that endpoint using an absolute URL on
+  the app's own origin, and the endpoint's target SHALL remain an archive URL
+  (confinement is preserved via the proxy).
+- R6.7 IF Ruffle fails on a very small embed, THE SYSTEM SHALL degrade to the
+  plain "not saved / could not play" notice rather than leaving a clipped error
+  strip, and SHALL suppress Ruffle's own unsupported-content warning UI inside
+  the restored frame.
 
 ## R7 — Reader view
 **User story:** As a visitor on a phone, I want a clean readable version, so

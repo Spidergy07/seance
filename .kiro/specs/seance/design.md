@@ -291,6 +291,39 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 - Browser-only: that a real archived `.swf` actually plays can only be confirmed
   in a browser; it is listed in the README manual checklist (task 25).
 
+### 9.1 The `.swf` CORS proxy (api/swf.ts, task 35, R6.6)
+The restored iframe runs in an opaque origin (`srcdoc` + `sandbox` without
+`allow-same-origin`). When Ruffle there fetches the raw archive `.swf`, the
+browser applies CORS and `web.archive.org` sends no `Access-Control-Allow-Origin`
+for the raw (`id_`) bytes, so the fetch is blocked. Seance therefore serves the
+`.swf` through its own same-origin proxy:
+
+- `api/swf.ts` takes `?url=<archive .swf url>`, validates the URL's host is
+  exactly `web.archive.org` (anything else → 400, so it is not an open proxy),
+  fetches it under the shared `fetchWithRetry` timeout/retry policy, and relays
+  the bytes with `access-control-allow-origin: *` and a Flash content type
+  (upstream's, else `application/x-shockwave-flash`). Stateless, no persistence.
+- `core/swf-proxy.ts` is the pure builder/parser for the endpoint URL:
+  `buildSwfProxyUrl(archiveUrl, proxyBase)` → `<proxyBase>?url=<archiveUrl>`.
+  The target stays an archive URL, so confinement (I2/R3.4) holds through the
+  proxy; the document-level confinement check treats an `/api/swf` URL as
+  confined when its `url` param is an archive URL.
+- `dom/rewrite-swf.ts` runs in the recovery pipeline *after* `applyFlashNotices`
+  (so confirmed-missing embeds are already notices): it rewrites the remaining
+  `.swf` `object[data]`/`embed[src]`/`param[name=movie|src]` values (already
+  archive URLs) to the absolute proxy URL. The app origin is injected
+  (`swfProxyBase`), defaulting in the browser to `window.location.origin + /api/swf`.
+- Registered in the dev router (`/api/swf`); on Vercel it deploys as an Edge
+  function from the file, like `cdx.ts`/`snapshot.ts`.
+
+### 9.2 Ruffle bootstrap and tiny-embed failure (task 38, R6.7)
+The restored frame injects a small Ruffle bootstrap that sets
+`window.RufflePlayer.config` to turn off Ruffle's unsupported-content warning UI
+(`warnOnUnsupportedContent: false`) and installs an error listener: when a
+polyfilled Ruffle player reports an error (including a load failure on a tiny
+embed), it replaces the player with the plain voice.md "could not play" notice,
+so a 10px embed never shows a clipped red strip.
+
 ## 10. Reader view (dom/reader.ts)
 - Run readability on a clone of the parsed DOM (readability mutates its input).
 - Rewrite asset URLs in the extracted content with the same rewriter (R7.4).

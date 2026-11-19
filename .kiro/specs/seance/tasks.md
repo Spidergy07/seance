@@ -294,3 +294,51 @@ These must exist and pass before the UI is trusted:
 - Rewriter **fragment preservation** (I3) — task 6 [R3.3]
 - Rewriter **query preservation** (I4) — task 6 [R3.3]
 - Document-level **confinement** after a full rewrite — task 13 [R3.4]
+
+## Phase 8 — CORS / picker / render-safety fix round (post-launch bugs)
+
+Found by a human testing the running app (Chrome) against the live Internet
+Archive after the Phase 7 fixes. One local commit per task; tests and typecheck
+pass after each.
+
+35. [ ] **Play archived Flash through a CORS proxy.** Ruffle, running in the
+    opaque-origin restored iframe, could not fetch the raw `.swf` from
+    `web.archive.org` (no CORS headers): "Access to fetch has likely been
+    blocked by CORS policy." Add `api/swf.ts`, a same-origin proxy that fetches
+    only from `web.archive.org` (rejecting any other host) and returns the bytes
+    with `Access-Control-Allow-Origin: *` and a Flash content type, under the
+    shared timeout/retry policy. Rewrite `.swf` `object`/`embed`/`param`
+    references to that endpoint as an absolute URL on the app origin. Register
+    it in the dev router. [R6.6, R6.1, R6.2, R9.1, D9, D11]
+    - Tests (first, offline): the proxy relays bytes with the CORS header and a
+      Flash content type; it rejects a non-archive host with 400 and no fetch;
+      the swf-proxy URL builder wraps an archive URL and parses back to it; the
+      DOM step rewrites object/embed/param `.swf` to `<origin>/api/swf?url=<archive>`
+      and leaves the target an archive URL (confinement preserved); the router
+      dispatches `/api/swf`.
+
+36. [ ] **One capture entry per day in the picker.** The saved-date list
+    repeated the same day many times (three "17 November 2026"). Collapse to one
+    entry per calendar day, preferring a working (200) capture for that day.
+    Keep the native, keyboard-operable control. [R2.6, D5]
+    - Tests (first): a pure `collapseCapturesByDay` returns one capture per day,
+      prefers status 200, orders newest first; the picker shows a given day once.
+
+37. [ ] **Death certificate never crashes; error boundary around the panels.**
+    A render error from `<DeathCertificate>` blanked the result while switching
+    captures. Treat an absent (null/undefined) selected or last-working capture
+    as "no working capture found" instead of reading `.timestamp` off it, and
+    wrap the result panels in an error boundary that shows a plain voice.md
+    message with a retry. [R5.5, D6]
+    - Tests (first): rendering the certificate with an undefined/null capture or
+      absent assets does not throw and shows the plain fallback; the error
+      boundary renders its fallback (with retry) when a child throws.
+
+38. [ ] **Tiny-embed Ruffle failure degrades to a plain notice.** A 10px
+    `.swf` drew a clipped red Ruffle error strip on failure. Inject a Ruffle
+    bootstrap into the restored frame that suppresses Ruffle's unsupported
+    -content warning UI and, on a player error, replaces the embed with the
+    plain voice.md notice. [R6.7, R6.5, D9]
+    - Tests (first): when the page has Flash, the built srcdoc carries the
+      bootstrap, disables the warning UI, and contains the plain notice text and
+      an error handler.
