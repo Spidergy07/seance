@@ -22,7 +22,8 @@ const baseReport: RecoveryReport = {
   ],
   recoveredCount: 2,
   totalCount: 4,
-  recoveryPercent: 50,
+  // checked = 3 (2 recovered + 1 missing); the unknown is not counted (task 53).
+  recoveryPercent: 67,
 };
 
 function render(report: RecoveryReport): string {
@@ -36,12 +37,13 @@ describe('DeathCertificate', () => {
     expect(html).toContain('last working capture');
   });
 
-  it('shows the recovery percent as a number and a meter (R5.2, R4.3)', () => {
+  it('shows the recovery percent over checked assets, as a number and a meter (R5.2, R4.3)', () => {
     const html = render(baseReport);
-    expect(html).toContain('50%');
-    expect(html).toContain('2 of 4 assets recovered');
+    expect(html).toContain('67%');
+    // Only checked files are in the count: 2 recovered of 3 checked.
+    expect(html).toContain('2 of 3 checked files came back');
     expect(html).toContain('role="meter"');
-    expect(html).toContain('aria-valuenow="50"');
+    expect(html).toContain('aria-valuenow="67"');
   });
 
   it('counts missing assets and links to the list (R5.3)', () => {
@@ -53,10 +55,35 @@ describe('DeathCertificate', () => {
     expect(html).toContain('http://oldsite.example/c.jpg');
   });
 
-  it('reports unknown assets separately and never as recovered (R4.4)', () => {
+  it('reports unchecked assets as not checked, never as recovered or failed (R4.4, task 53)', () => {
     const html = render(baseReport);
-    expect(html).toContain('1 unknown');
+    // The one unknown asset was not checked to keep archive requests low. It is
+    // named honestly, not counted as recovered, and not called a failure.
+    expect(html).toContain('1 not checked');
+    expect(html).toContain('to keep requests to the archive low');
     expect(html).toContain('not counted as recovered');
+  });
+
+  it('shows no meter when no assets could be checked (all unknown, task 53)', () => {
+    const html = render({
+      ...baseReport,
+      assets: [
+        { originalUrl: 'http://oldsite.example/a.js', kind: 'script', status: 'unknown' },
+        { originalUrl: 'http://oldsite.example/b.js', kind: 'script', status: 'unknown' },
+      ],
+      recoveredCount: 0,
+      totalCount: 2,
+      recoveryPercent: 100,
+    });
+    // A percent of zero checked files would read as a false 100%. Say plainly
+    // that nothing was checked instead.
+    expect(html).not.toContain('role="meter"');
+    expect(html).not.toContain('100%');
+    expect(html).not.toContain('checked files came back');
+    expect(html).toContain('none of the 2 files');
+    expect(html).toContain('to keep requests to the archive low');
+    // The last-working date still shows.
+    expect(html).toContain('3 March 2008');
   });
 
   it('notes the selected capture when it differs from the last working one (R5.4)', () => {

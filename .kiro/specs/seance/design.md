@@ -209,8 +209,21 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 - Input: the list of `AssetResult`s produced while rewriting + checking.
 - `recovered = assets.filter(a => a.status === 'recovered').length`.
 - `total = assets.length`.
-- `recoveryPercent = total === 0 ? 100 : Math.round(recovered / total * 100)`.
-- `unknown` and `missing` never count as recovered (R4.4, R8.6).
+- `checked = assets.filter(a => a.status === 'recovered' || a.status === 'missing').length`.
+- `recoveryPercent = checked === 0 ? 100 : Math.round(recovered / checked * 100)`.
+  The denominator is the *checked* files, not `total` (task 53, R4.3). The asset
+  -check cap (R8.7) leaves most of a busy page's assets `unknown` (unchecked);
+  counting those in the denominator understated recovery and described never
+  -checked files as failures. Dividing by checked reports what was verified:
+  e.g. 4 of 4 checked files came back (100%) with 13 more left unchecked, rather
+  than "4 of 17, 24%". `checkedCount(assets)` exposes the count for the UI.
+- `unknown` and `missing` never count as recovered (R4.4, R8.6). An `unknown`
+  asset is "not checked", named honestly and excluded from both the numerator
+  and the denominator; the certificate states how many were not checked and why
+  (to keep archive requests low). When `checked === 0` but assets exist, the
+  certificate shows no percentage or meter and says nothing was checked (R4.3).
+- The "partial contact" banner (`ui/status-banner.partialBanner`) fires only
+  when a *checked* asset is missing; unchecked assets never trigger it (R8.5).
 - Grouping for the report: bucket missing assets by `kind` (R4.5).
 - Recovered means status 200 (R4.6). `dom/asset-status.resolveAssetStatuses`
   counts an asset recovered only when its looked-up capture is a 200; a capture
@@ -437,7 +450,7 @@ control, but the primary movie always loads through `/api/swf`. That a real
 | Slow archive     | response exceeds soft threshold           | show progress; hard timeout aborts the request (R8.2)                           |
 | Rate limited     | 429 or archive throttling signal          | bounded backoff + retry, visible countdown, give up with plain message (R8.3)   |
 | Archive outage   | network error or 5xx                      | state it is archive/network side, offer retry (R8.4)                            |
-| Partial recovery | some assets missing/unknown               | render what loaded, show recovered vs missing counts (R8.5, R4.3)               |
+| Partial recovery | a checked asset is missing                | render what loaded, show recovered vs missing among checked files; unchecked files are named, not counted as failures (R8.5, R4.3) |
 | Flash missing    | `.swf` has no capture                     | plain "not saved" notice, rest of page renders (R6.3)                           |
 | Ruffle failure   | Ruffle load/init throws                    | plain error, rest of page renders (R6.5)                                        |
 

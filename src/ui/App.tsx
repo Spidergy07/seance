@@ -18,7 +18,7 @@ import { browserRecoverDeps, recover } from './recover.js';
 import { formatCaptureDate } from './format.js';
 import { recoveryStepLabel, type RecoveryStep } from './progress.js';
 import { resultPanesClass } from './result-layout.js';
-import type { BannerStatus } from './status-banner.js';
+import { partialBanner, type BannerStatus } from './status-banner.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
 export interface AppProps {
@@ -124,6 +124,11 @@ export function App(props: AppProps) {
   );
 
   const busy = phase.status === 'running';
+  // The "partial contact" banner only appears when a file we actually checked
+  // is missing; files left unchecked to keep archive requests low are not
+  // failures and do not trigger it (task 53, R8.5).
+  const partial =
+    phase.status === 'done' ? partialBanner(phase.view.report.assets) : null;
 
   return (
     <div className="seance">
@@ -179,18 +184,7 @@ export function App(props: AppProps) {
         {phase.status === 'done' && (
           <section className="result" aria-label="Recovery result">
             <ResultErrorBoundary onRetry={() => start(phase.view.pageOriginalUrl)}>
-              {phase.view.report.recoveryPercent < 100 && (
-                <StatusBanner
-                  status={{
-                    kind: 'partial',
-                    recoveredCount: phase.view.report.recoveredCount,
-                    missingCount: phase.view.report.assets.filter(
-                      (a) => a.status === 'missing',
-                    ).length,
-                    totalCount: phase.view.report.totalCount,
-                  }}
-                />
-              )}
+              {partial !== null && <StatusBanner status={partial} />}
               <DeathCertificate report={phase.view.report} />
               <CapturePicker
                 captures={phase.view.captures}

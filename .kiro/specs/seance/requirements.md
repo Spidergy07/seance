@@ -120,8 +120,14 @@ can trust what I am seeing.
   and whether a capture exists for it.
 - R4.2 IF an asset has no capture, or its capture returns a non-200 status,
   THE SYSTEM SHALL mark it as not recovered and SHALL list its original URL.
-- R4.3 THE SYSTEM SHALL compute a recovery percentage from recovered assets
-  over total referenced assets and SHALL show both the count and the percent.
+- R4.3 THE SYSTEM SHALL compute the recovery percentage over the assets it
+  actually checked against the archive (recovered plus missing), not over every
+  referenced asset, so that files left unchecked to keep archive requests low
+  (R8.7) do not understate the result. It SHALL show the count of checked files
+  that came back and, when any files were not checked, SHALL state plainly how
+  many were not checked and why. WHERE no asset could be checked, THE SYSTEM
+  SHALL NOT show a percentage or meter and SHALL say plainly that nothing was
+  checked.
 - R4.4 WHERE an asset's status cannot be determined, THE SYSTEM SHALL mark it
   "unknown" and SHALL NOT count it as recovered.
 - R4.5 THE SYSTEM SHALL group missing assets by type (image, stylesheet,
@@ -222,7 +228,11 @@ fails, so that I know whether the problem is my URL, the archive, or the asset.
   SHALL state the failure is on the archive/network side, not the user's URL,
   and SHALL offer retry.
 - R8.5 WHERE recovery is partial, THE SYSTEM SHALL still render what loaded and
-  SHALL make the partial status obvious (count recovered vs. missing).
+  SHALL make the partial status obvious (count recovered vs. missing among the
+  files it checked). THE SYSTEM SHALL show the "partial contact" banner only
+  when a file it actually checked is missing; files left unchecked (R8.7) are
+  not failures and SHALL NOT, on their own, trigger the partial state or be
+  described as unreachable.
 - R8.6 THE SYSTEM SHALL never present an unrecovered asset as if it loaded.
 - R8.7 WHILE resolving which referenced assets were saved, THE SYSTEM SHALL
   bound the archive traffic a single recovery makes: it SHALL check at most a

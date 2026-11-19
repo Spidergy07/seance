@@ -108,10 +108,11 @@ describe('end-to-end recovery flow (fixtures)', () => {
     const { report } = view;
 
     // style.css, logo.png, intro.swf → recovered; missing.png → missing;
-    // app.js → unknown. Five element-level assets in total.
+    // app.js → unknown. Five element-level assets in total, but only four were
+    // checked (the unknown one is not in the percent denominator, task 53).
     expect(report.totalCount).toBe(5);
     expect(report.recoveredCount).toBe(3);
-    expect(report.recoveryPercent).toBe(60);
+    expect(report.recoveryPercent).toBe(75);
 
     const statusOf = (suffix: string) =>
       report.assets.find((a) => a.originalUrl.endsWith(suffix))?.status;
@@ -147,8 +148,8 @@ describe('end-to-end recovery flow (fixtures)', () => {
     const html = renderToStaticMarkup(
       createElement(DeathCertificate, { report: view.report }),
     );
-    expect(html).toContain('3 of 5');
-    expect(html).toContain('60');
+    expect(html).toContain('3 of 4 checked files came back');
+    expect(html).toContain('75');
     // The missing image is named in the report.
     expect(html).toContain('missing.png');
   });

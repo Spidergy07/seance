@@ -1342,3 +1342,40 @@ test first where testable; full suite + typecheck + lint green after each.
   an R5.6 test asserting no `role="meter"`/percent and the plain no-assets line
   while the date still shows), voice.md (plain, honest, no hype).
 - Verified: 325 tests pass, typecheck and lint clean.
+
+## Task 53 — Describe unchecked assets honestly
+
+- Problem (browser re-test, Chrome vs live archive): on
+  `http://spacelink.nasa.gov/` the partial banner said "4 of 17 assets
+  recovered. 13 could not be reached." and the certificate said "Recovery 24%".
+  Since task 32 caps asset checks at four (`DEFAULT_MAX_CHECKED_ASSETS`), the
+  other 13 were never checked (reported `unknown`), so "could not be reached"
+  was false and 24% (4/17) understated what Seance actually verified.
+- Fix (R4.3, R8.5, R8.7, design §6/§11):
+  - `core/recovery.recoveryPercent` now divides by the *checked* assets
+    (recovered + missing), not the total. 4 recovered of 4 checked reads 100%,
+    with the 13 unchecked named separately, instead of a dishonest 24%. Added
+    `checkedCount(assets)` for the UI. `unknown` is still never in the
+    numerator (R4.4).
+  - `DeathCertificate` shows "N of M checked files came back from the Internet
+    Archive", a tally line "K not checked, to keep requests to the archive low
+    (status unknown, not counted as recovered)", and, when nothing could be
+    checked (all unknown), no meter/percent and a plain "checked none of the N
+    files" line rather than a false 100%.
+  - `status-banner.partialBanner(assets)` is a new pure gate: it returns a
+    partial status only when a *checked* asset is missing, so a page where
+    everything checked came back shows no "Partial contact" banner even with
+    many unchecked files. `App` uses it. The partial copy now reads "N of M
+    checked files came back. K could not be reached." plus, when any were
+    skipped, "J more were not checked, to keep requests to the archive low."
+- Kiro features used: spec-first (reworded R4.3, R8.5, design §6 and the §11
+  partial row), test-first (updated `recovery`, `death-certificate`,
+  `status-banner`, and the end-to-end `recover-flow` expectations to the
+  checked-only semantics; added `partialBanner` gating tests and a
+  nothing-checked certificate test — 12 reds first, then green), voice.md
+  (plain, honest, numbers, no blame, no hype).
+- The recover-flow fixture (5 assets: 3 recovered, 1 missing, 1 unknown) now
+  reports 75% (3 of 4 checked), not 60% (3 of 5). The GeoCities legacy-assets
+  case is unchanged at 20% because all five were checked (1 recovered, 4
+  missing, no unknown).
+- Verified: 331 tests pass (+6 net), typecheck and lint clean.

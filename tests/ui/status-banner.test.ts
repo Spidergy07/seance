@@ -3,9 +3,11 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   statusContent,
+  partialBanner,
   type BannerStatus,
 } from '../../src/ui/status-banner.js';
 import { StatusBanner } from '../../src/ui/StatusBanner.js';
+import type { AssetResult, AssetStatus } from '../../src/core/types.js';
 
 function render(status: BannerStatus, onRetry?: () => void): string {
   return renderToStaticMarkup(
@@ -23,7 +25,7 @@ describe('statusContent covers every design.md §11 state', () => {
     { kind: 'timeout' },
     { kind: 'outage' },
     { kind: 'network' },
-    { kind: 'partial', recoveredCount: 1, missingCount: 1, totalCount: 2 },
+    { kind: 'partial', recoveredCount: 1, missingCount: 1, uncheckedCount: 0 },
     { kind: 'flash-missing' },
     { kind: 'ruffle-failure' },
   ];
@@ -69,15 +71,32 @@ describe('StatusBanner messages (R8.1–R8.6)', () => {
     expect(html).toContain('role="alert"');
   });
 
-  it('partial: shows recovered vs missing counts (R8.5, R4.3)', () => {
+  it('partial: counts only checked files, naming the misses (R8.5, R4.3)', () => {
     const html = render({
       kind: 'partial',
       recoveredCount: 34,
       missingCount: 7,
-      totalCount: 41,
+      uncheckedCount: 0,
     });
-    expect(html).toContain('34 of 41 assets recovered');
+    // checked = 34 + 7 = 41; all 41 were checked here.
+    expect(html).toContain('34 of 41 checked files came back');
     expect(html).toContain('7 could not be reached');
+  });
+
+  it('partial: names unchecked files honestly, never as failures (task 53)', () => {
+    const html = render({
+      kind: 'partial',
+      recoveredCount: 4,
+      missingCount: 2,
+      uncheckedCount: 13,
+    });
+    // checked = 6; only the 2 missing could not be reached.
+    expect(html).toContain('4 of 6 checked files came back');
+    expect(html).toContain('2 could not be reached');
+    expect(html).toContain('13 more were not checked');
+    expect(html).toContain('to keep requests to the archive low');
+    // The 13 unchecked files are not described as unreachable failures.
+    expect(html).not.toContain('13 could not be reached');
   });
 
   it('flash missing: plain not-saved message (R6.3)', () => {
@@ -110,5 +129,42 @@ describe('StatusBanner messages (R8.1–R8.6)', () => {
       expect(statusContent(status).retryable).toBe(true);
       expect(render(status, retry)).toContain('Try again');
     }
+  });
+});
+
+describe('partialBanner gating (task 53): only checked misses trigger it', () => {
+  const asset = (status: AssetStatus, originalUrl: string): AssetResult =>
+    status === 'recovered'
+      ? { originalUrl, kind: 'image', status, archiveUrl: 'x' }
+      : { originalUrl, kind: 'image', status };
+
+  it('returns null when nothing checked is missing, even with unchecked assets', () => {
+    const assets: AssetResult[] = [asset('recovered', 'a')];
+    for (let i = 0; i < 13; i++) {
+      assets.push(asset('unknown', `u${i}`));
+    }
+    // 1 recovered, 0 missing, 13 unchecked: no "partial contact" banner, because
+    // nothing that was checked is actually missing.
+    expect(partialBanner(assets)).toBeNull();
+  });
+
+  it('returns a partial status with checked and unchecked counts when a checked asset is missing', () => {
+    const assets: AssetResult[] = [
+      asset('recovered', 'a'),
+      asset('recovered', 'b'),
+      asset('recovered', 'c'),
+      asset('recovered', 'd'),
+      asset('missing', 'e'),
+      asset('missing', 'f'),
+    ];
+    for (let i = 0; i < 13; i++) {
+      assets.push(asset('unknown', `u${i}`));
+    }
+    expect(partialBanner(assets)).toEqual({
+      kind: 'partial',
+      recoveredCount: 4,
+      missingCount: 2,
+      uncheckedCount: 13,
+    });
   });
 });

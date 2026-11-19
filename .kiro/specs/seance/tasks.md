@@ -506,3 +506,32 @@ one commit per task; tests and typecheck pass after each.
     - Tests (first): the certificate with an empty assets list renders the plain
       no-assets line and no `role="meter"`/percentage; a normal report still
       shows the meter and percent.
+
+## Phase 12 — Demo re-test honesty/polish round (checked-asset accounting, reader images)
+
+Found by a human re-testing the demo URLs in Chrome against the live Internet
+Archive after Phase 11. Spec first, a failing test first, one commit per task;
+tests and typecheck pass after each.
+
+53. [x] **Describe unchecked assets honestly.** On `http://spacelink.nasa.gov/`
+    the banner read "Partial contact. 4 of 17 assets recovered. 13 could not be
+    reached." and the certificate read "Recovery 24%". Since the task-32 cap
+    checks at most four assets, the other 13 were never checked, so "could not
+    be reached" was false and 24% understated. Compute the percentage over the
+    checked assets only (recovered + missing), state how many were not checked
+    and why, and show the "Partial contact" banner only when a checked asset is
+    actually missing. [R4.3, R8.5, R8.7, D6, D11]
+    - Tests (first): `recoveryPercent` divides by checked, excluding unknown;
+      `buildRecoveryReport` returns the checked-only percent; the certificate
+      shows "N of M checked files came back" plus the not-checked line and no
+      meter when nothing was checked; the partial banner copy names unchecked
+      files without calling them failures; `partialBanner` returns null when no
+      checked asset is missing.
+
+54. [ ] **Robust reader-view images.** The Reader view showed a broken-image
+    icon (NASA Kids: an image beside "Privacy Statement"). Apply the same
+    failed-image handling the restored view uses: hide tracking-size (1×1/0×0)
+    images and replace an image that fails to load with the small styled
+    placeholder. [R3.13, R7.4, D10]
+    - Tests (first): the reader output carries the same image-guard behaviour so
+      a failed or tracking-size image does not render as a broken-image icon.

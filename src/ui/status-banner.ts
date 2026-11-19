@@ -3,6 +3,8 @@
 // next, never blaming them (voice.md, R8.1–R8.6, R1.2). The component only
 // renders what this returns, so the wording is tested directly under Node.
 
+import type { AssetResult } from '../core/types.js';
+
 /** How loud the banner is, and which colour it carries. */
 export type BannerTone = 'info' | 'warn' | 'error' | 'partial';
 
@@ -18,9 +20,12 @@ export type BannerStatus =
   | { kind: 'network' }
   | {
       kind: 'partial';
+      /** Checked files that came back (status 200). */
       recoveredCount: number;
+      /** Checked files with no working capture. */
       missingCount: number;
-      totalCount: number;
+      /** Files not checked against the archive, to keep requests low (R8.7). */
+      uncheckedCount: number;
     }
   | { kind: 'flash-missing' }
   | { kind: 'ruffle-failure' };
@@ -121,11 +126,15 @@ export function statusContent(status: BannerStatus): BannerContent {
       };
 
     case 'partial': {
-      const notReached = status.totalCount - status.recoveredCount;
+      const checked = status.recoveredCount + status.missingCount;
+      let detail = `${status.recoveredCount} of ${checked} checked files came back. ${status.missingCount} could not be reached.`;
+      if (status.uncheckedCount > 0) {
+        detail += ` ${status.uncheckedCount} more were not checked, to keep requests to the archive low.`;
+      }
       return {
         tone: 'partial',
         title: 'Partial contact',
-        detail: `${status.recoveredCount} of ${status.totalCount} assets recovered. ${notReached} could not be reached.`,
+        detail,
         nextStep: 'The restored page is shown below, with the gaps named in the certificate.',
         retryable: false,
       };
@@ -149,4 +158,33 @@ export function statusContent(status: BannerStatus): BannerContent {
         retryable: false,
       };
   }
+}
+
+/**
+ * Decide whether the "partial contact" banner should appear, and with what
+ * counts (task 53, R8.5). It appears only when at least one asset that was
+ * *checked* against the archive is missing. Unchecked (`unknown`) assets are
+ * not failures — they were skipped to keep archive requests low (R8.7) — so a
+ * page where everything checked came back shows no partial banner even if many
+ * assets went unchecked. Returns null when there is nothing to warn about.
+ */
+export function partialBanner(
+  assets: readonly AssetResult[],
+): Extract<BannerStatus, { kind: 'partial' }> | null {
+  let recoveredCount = 0;
+  let missingCount = 0;
+  let uncheckedCount = 0;
+  for (const asset of assets) {
+    if (asset.status === 'recovered') {
+      recoveredCount += 1;
+    } else if (asset.status === 'missing') {
+      missingCount += 1;
+    } else {
+      uncheckedCount += 1;
+    }
+  }
+  if (missingCount === 0) {
+    return null;
+  }
+  return { kind: 'partial', recoveredCount, missingCount, uncheckedCount };
 }

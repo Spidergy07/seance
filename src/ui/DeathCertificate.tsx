@@ -38,17 +38,24 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
   const lastWorking = lastWorkingCapture ?? null;
   const assets = report.assets ?? [];
   const recoveredCount = report.recoveredCount ?? 0;
-  const totalCount = report.totalCount ?? 0;
   const recoveryPercent = report.recoveryPercent ?? 0;
 
   const missingCount = assets.filter((a) => a.status === 'missing').length;
   const unknownCount = assets.filter((a) => a.status === 'unknown').length;
   const missingByKind = groupMissingByKind(assets);
 
-  // A recovery that checked no separate files has no meaningful percentage: a
+  // A recovery that referenced no separate files has no meaningful percentage: a
   // percentage of nothing reads as a false "100%". Say so plainly instead
   // (R5.6).
   const noAssets = assets.length === 0;
+
+  // The files whose status we actually checked against the archive (recovered +
+  // missing). Unchecked (`unknown`) files are not in the percent (task 53).
+  const checkedCount = recoveredCount + missingCount;
+
+  // Assets exist, but none could be checked (all unknown). A percent of zero
+  // checked files would read as a false 100%, so show a plain line instead.
+  const noneChecked = !noAssets && checkedCount === 0;
 
   const selectedDiffers =
     lastWorking !== null &&
@@ -118,6 +125,12 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
           This page had no separate images, styles, or files to recover. Only
           the page itself was saved.
         </p>
+      ) : noneChecked ? (
+        <p className="recovery__none" role="note">
+          Seance checked none of the {assets.length} files this page references,
+          to keep requests to the archive low. Their status is unknown, so none
+          are counted as recovered.
+        </p>
       ) : (
         <>
           <div className="recovery">
@@ -128,7 +141,7 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
             <div
               className="meter"
               role="meter"
-              aria-label="Share of referenced assets recovered from the archive"
+              aria-label="Share of checked assets recovered from the archive"
               aria-valuenow={recoveryPercent}
               aria-valuemin={0}
               aria-valuemax={100}
@@ -137,8 +150,8 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
               <span className="meter__fill" style={{ width: `${recoveryPercent}%` }} />
             </div>
             <p className="recovery__count">
-              {recoveredCount} of {totalCount} assets recovered from the Internet
-              Archive.
+              {recoveredCount} of {checkedCount} checked files came back from the
+              Internet Archive.
             </p>
           </div>
 
@@ -156,8 +169,8 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
             </li>
             {unknownCount > 0 && (
               <li className="tally__item tally__item--unknown">
-                {unknownCount} unknown ({unknownCount === 1 ? 'its' : 'their'}{' '}
-                status could not be checked; not counted as recovered)
+                {unknownCount} not checked, to keep requests to the archive low
+                (status unknown, not counted as recovered)
               </li>
             )}
           </ul>

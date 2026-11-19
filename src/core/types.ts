@@ -62,7 +62,11 @@ export interface RecoveryReport {
   assets: AssetResult[];
   recoveredCount: number;
   totalCount: number;
-  /** Whole number: recovered / total * 100. */
+  /**
+   * Whole number: recovered / checked * 100, where checked = recovered +
+   * missing. Unchecked (`unknown`) assets are not in the denominator, so the
+   * percent reflects only the files whose status was verified (task 53).
+   */
   recoveryPercent: number;
 }
 

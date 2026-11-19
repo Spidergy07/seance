@@ -26,17 +26,33 @@ export function countByStatus(assets: readonly AssetResult[]): StatusCounts {
 }
 
 /**
- * Recovered assets over total, as a whole-number percent. Empty input is 100%
- * (nothing was referenced, so nothing is missing). Only `recovered` counts
- * toward the numerator (R4.4, R8.6).
+ * The number of assets whose status was actually checked against the archive:
+ * `recovered` plus `missing`. An `unknown` asset was not checked (the per
+ * -recovery cap left it unchecked, or its lookup was undetermined), so it is
+ * not counted here (R8.7, task 53).
+ */
+export function checkedCount(assets: readonly AssetResult[]): number {
+  return assets.filter(
+    (a) => a.status === 'recovered' || a.status === 'missing',
+  ).length;
+}
+
+/**
+ * Recovered assets as a whole-number percent of the assets that were actually
+ * checked (recovered + missing), not of every referenced asset. Unchecked
+ * (`unknown`) assets are excluded from the denominator, so the percent reflects
+ * what we verified rather than understating it by counting files we never
+ * looked up (task 53). When nothing was checked, there is nothing known to be
+ * missing, so the result is 100. Only `recovered` counts toward the numerator
+ * (R4.4, R8.6).
  */
 export function recoveryPercent(assets: readonly AssetResult[]): number {
-  const total = assets.length;
-  if (total === 0) {
+  const checked = checkedCount(assets);
+  if (checked === 0) {
     return 100;
   }
   const recovered = assets.filter((a) => a.status === 'recovered').length;
-  return Math.round((recovered / total) * 100);
+  return Math.round((recovered / checked) * 100);
 }
 
 /** Missing assets grouped by kind, for the recovery report (R4.5). */
