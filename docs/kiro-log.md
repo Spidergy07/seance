@@ -1526,3 +1526,21 @@ test first where testable; full suite + typecheck + lint green after each.
 - Kiro features used: the `seance` agent and its postToolUse test hook; this is
   a repo-hygiene task, so no spec/requirement is cited.
 - Verified: 342 tests pass, typecheck, lint, and build clean.
+
+### Task 58 — README for submission
+
+- Put the live app URL (`https://kiroween-seance.vercel.app`), the hackathon
+  context (Kiroween 2026, category Resurrection), and a `Demo video: (link
+  added after upload)` line near the top.
+- Added a "Try these" section with the two demo URLs from `docs/demo-urls.md`
+  (`http://kids.msfc.nasa.gov/`, `http://spacelink.nasa.gov/`) and the plain
+  facts each one shows (death date, Flash, recovery percentage).
+- Corrected the proxy count from two to three functions (`cdx.ts`,
+  `snapshot.ts`, `swf.ts`) in "Built with", "Deploying", the dev-middleware
+  note, and the project-layout map; the deploy section already stated the
+  Node.js runtime (task 56).
+- Removed every em dash from the README per voice.md (two section sub-headings
+  and the property-test line), and checked the file for hype words (none).
+- Kiro features used: voice.md copy rules (plain English, no hype, no em
+  dashes); this is a docs task, so no requirement is cited.
+- Verified: 342 tests pass, typecheck, lint, and build clean.

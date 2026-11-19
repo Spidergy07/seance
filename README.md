@@ -6,7 +6,23 @@ Wayback Machine, rewrites its links and assets so they load from the archive,
 reports what could not be recovered, plays archived Flash through Ruffle, and
 shows the restored page beside a clean, mobile-readable version.
 
-Built for the Kiroween 2026 hackathon, category: Resurrection.
+- **Live app:** https://kiroween-seance.vercel.app
+- **Hackathon:** Kiroween 2026, category Resurrection.
+- **Demo video:** (link added after upload)
+
+## Try these
+Paste one of these into the app to see a full recovery. Both are U.S.
+government (NASA) educational pages, so the content is public domain and carries
+no third-party marks. Dates below come from real Wayback CDX rows.
+
+- `http://kids.msfc.nasa.gov/` is a Flash homepage. The certificate reads
+  "died 12 April 2006", and two archived `.swf` movies play through Ruffle in
+  the restored view. Use "Reach an older copy" to browse earlier captures.
+- `http://spacelink.nasa.gov/` is a plain text-and-image page that stopped
+  being saved with a working status in early 2005. The certificate reads "died
+  31 January 2005" and shows a recovery percentage with any missing assets.
+
+See `docs/demo-urls.md` for how these were found and what the archive holds.
 
 ## What it does
 - Looks up captures of a URL via the Wayback Machine CDX API (through our own
@@ -28,9 +44,10 @@ The seance theme is functional: every themed element maps to real state (see
 ## Built with
 TypeScript end to end.
 - **Frontend:** Vite + React, a plain static bundle.
-- **Archive proxy:** two stateless serverless functions in `api/` (`cdx.ts`,
-  `snapshot.ts`) that front the Wayback Machine. They avoid browser CORS, add
-  timeouts and bounded retry/backoff, and persist nothing.
+- **Archive proxy:** three stateless serverless functions in `api/` (`cdx.ts`,
+  `snapshot.ts`, `swf.ts`) that front the Wayback Machine. They avoid browser
+  CORS, add timeouts and bounded retry/backoff, and persist nothing. They run
+  on Vercel's Node.js runtime.
 - **Core logic:** pure TypeScript in `src/core/` (URL rewriter, archive-URL
   builder, capture selection, recovery math) with no DOM, no network, no React,
   so it is property-testable.
@@ -54,14 +71,15 @@ npm run typecheck
 
 ### Local development with the proxy
 `npm run dev` serves the app and the archive proxy together on one origin. A
-small dev-only Vite middleware (in `vite.config.ts`) routes `/api/cdx` and
-`/api/snapshot` to the same functions that deploy to production, loading them
-through Vite's module loader. So the browser only ever talks to our own origin,
-in development and in production alike. No separate server process is needed.
+small dev-only Vite middleware (in `vite.config.ts`) routes `/api/cdx`,
+`/api/snapshot`, and `/api/swf` to the same functions that deploy to
+production, loading them through Vite's module loader. So the browser only ever
+talks to our own origin, in development and in production alike. No separate
+server process is needed.
 
 ## Deploying (Vercel, free tier)
-The build output is a static bundle plus two stateless functions, which fits a
-free static host with serverless functions. `vercel.json` sets the Vite
+The build output is a static bundle plus three stateless functions, which fits
+a free static host with serverless functions. `vercel.json` sets the Vite
 framework, build command, and output directory.
 
 ```bash
@@ -93,7 +111,7 @@ either way; this only changes where the static script comes from.
 - The suite runs offline under Node; no test touches the live archive (the CDX
   and snapshot clients are driven by recorded fixtures under
   `tests/fixtures/`).
-- The URL rewriter — the correctness-critical unit — has fast-check property
+- The URL rewriter, the correctness-critical unit, has fast-check property
   tests for its invariants: idempotence, confinement to the archive prefix,
   and fragment/query preservation. A document-level confinement test asserts
   that after a full rewrite no element references a non-archive host.
@@ -132,7 +150,7 @@ src/core/     pure logic (rewriter, archive-url, capture-select, recovery)
 src/archive/  network boundary; calls only our own /api proxy
 src/dom/      DOM rewriting, reader extraction, Flash handling
 src/ui/       React components + the recovery pipeline
-api/          serverless proxy functions (cdx, snapshot) + shared helpers
+api/          serverless proxy functions (cdx, snapshot, swf) + shared helpers
 tests/        mirrors src/; fixtures under tests/fixtures/
 .kiro/        steering, spec, agent, and hook
 ```
@@ -144,7 +162,7 @@ Checked against the live Wayback CDX API on 19 November 2026 with a small number
 of one-shot requests (no browser). These confirm the data the pipeline depends
 on is real; the rendering checks that need a browser are listed afterwards.
 
-### Dead page with good captures — `http://www.geocities.com/Athens/`
+### Dead page with good captures: `http://www.geocities.com/Athens/`
 - The Wayback CDX returns HTTP 200 captures from 22 October 1996 to
   17 October 2000 (most recent 200: timestamp `20001017124759`).
 - Captures after that are HTTP 301 redirects (the GeoCities domain now parks and
@@ -152,7 +170,7 @@ on is real; the rendering checks that need a browser are listed afterwards.
   17 October 2000. The death certificate reads **Last working capture:
   17 October 2000**, computed from real CDX rows, not a guess.
 
-### Archived Flash — `http://www.homestarrunner.com/intro.swf`
+### Archived Flash: `http://www.homestarrunner.com/intro.swf`
 - The CDX returns HTTP 200 captures at `20040325185740` (25 March 2004) and
   `20060626144354` (26 June 2006).
 - Seance rewrites this to the raw archive URL
