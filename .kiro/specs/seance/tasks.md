@@ -71,7 +71,7 @@ Legend: [R#] requirement id, [D#] design section.
      recent 200; returns fallback when no 200; empty input returns no capture;
      `byDate` is sorted and de-duplicated.
 
-9. **Recovery accounting.** Implement `src/core/recovery.ts`: counts, percent,
+9. [x] **Recovery accounting.** Implement `src/core/recovery.ts`: counts, percent,
    grouping; unknown/missing never count as recovered. [R4.3–R4.5, R8.6, D6]
    - Tests (`tests/core/recovery.test.ts`): percent rounding; empty assets →
      100%; unknown excluded from recovered; grouping by kind.

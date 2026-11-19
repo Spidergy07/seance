@@ -140,3 +140,17 @@ was built, which Kiro features were used, and any problem hit.
   fixtures directory from `structure.md`. Timestamps are 14-digit fixed width,
   so lexicographic string compare is correct for ordering.
 - Problems hit: none. 68 tests pass, typecheck and lint clean.
+
+## Task 9 — Recovery accounting
+
+- Implemented `src/core/recovery.ts`: `countByStatus`, `recoveryPercent`
+  (empty → 100%, whole-number rounding, only `recovered` counts),
+  `groupMissingByKind` (buckets status `missing` by kind, excludes recovered
+  and unknown), and `buildRecoveryReport` (assembles the `RecoveryReport`).
+- Tests (`tests/core/recovery.test.ts`, 9 cases): status counts; percent
+  rounding (33/67), empty → 100, all-recovered → 100, all-unknown → 0; unknown
+  and missing never recovered; grouping by kind excludes recovered/unknown;
+  full report counts/percent and capture fields.
+- Kiro features used: `design.md` §6, `requirements.md` R4.3–R4.5 and R8.6
+  (honesty: unknown is never reported as recovered).
+- Problems hit: none. 77 tests pass, typecheck and lint clean.
