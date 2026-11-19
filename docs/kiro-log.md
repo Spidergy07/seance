@@ -1544,3 +1544,30 @@ test first where testable; full suite + typecheck + lint green after each.
 - Kiro features used: voice.md copy rules (plain English, no hype, no em
   dashes); this is a docs task, so no requirement is cited.
 - Verified: 342 tests pass, typecheck, lint, and build clean.
+
+### Task 59 — Re-check the Kiro write-up against the final repo
+
+- Re-read `docs/kiro-writeup.md` against `git log` and `npm test` after the
+  Phase 11 to 13 fix rounds (production runtime, honest checked-asset counts,
+  redirect-stub death date) and corrected every stale fact:
+  - Commits: "52 commits, 48 one per numbered task" became "64 commits, 59 one
+    per numbered task (task 1 through 59, in order), the other 5 spec or doc
+    updates" (checked with `git rev-list --count HEAD` and
+    `git log --oneline | grep -cE 'task [0-9]+'`).
+  - Tests: "53 test files, 309 tests" became "56 test files, 342 tests"
+    (from `npm test`).
+  - Spec size: "49 tasks across 11 phases (0 through 10)" became "56 tasks
+    across 14 phases (0 through 13)", with a note that cleanup tasks 57 to 59
+    live in this log, not `tasks.md`.
+  - Demo fact: the NASA Kids death date was stated as 26 September 2007; that
+    timestamp is the redirect stub. Corrected to the real-site last working
+    capture, 12 April 2006, which the task-51 redirect-stub rule reports.
+  - Fix-round scope: extended the requirement-ID list (added R2.6, R2.7, R4.3,
+    R5.6, R6.8) and the phase range (6 through 13), and named the task-56
+    production runtime fix as a concrete spec-first example.
+- Confirmed the unchanged claims still hold: 4 steering docs, 3 spec files, the
+  agent's `mcpServers` block, 9 wayback MCP tests, 2 property-based test files,
+  12 archive requests for the demo hunt. No em dashes in the file.
+- Kiro features used: the write-up documents the Kiro workflow itself; facts
+  were re-derived from `git log` and `npm test` rather than restated.
+- Verified: 342 tests pass, typecheck, lint, and build clean.

@@ -10,10 +10,10 @@ build log in `docs/kiro-log.md`, and the git history.
 Seance was built with the Kiro CLI (`kiro-cli`), driven phase by phase through
 non-interactive runs rather than one long open-ended chat. Each run was scoped
 to one phase or one task from `tasks.md`, told to write the test first, run it,
-implement, and commit. The git history reflects this: 52 commits, 48 of them
-one per numbered task, in task order (`git log --oneline`). Working in small,
-scoped runs kept each change reviewable and kept the test suite green between
-tasks.
+implement, and commit. The git history reflects this: 64 commits, 59 of them
+one per numbered task (task 1 through task 59, in order), the other 5 spec or
+doc updates (`git log --oneline`). Working in small, scoped runs kept each
+change reviewable and kept the test suite green between tasks.
 
 ## The custom agent
 
@@ -62,11 +62,14 @@ asking for a feature and accepting whatever came back, each run had a fixed
 target (the task), a fixed contract (the cited requirements), and a fixed check
 (the named test). When the running app failed in a browser, the fix was not an
 ad-hoc patch: a new numbered task was added to `tasks.md`, often with a new
-requirement (R3.9 through R3.14, R4.6, R4.7, R5.5, R6.6, R6.7, R8.7 through
-R8.10), the design doc was updated, a failing test was written, and only then
-was the code changed. The fix rounds are visible as Phases 6 through 10 in
-`tasks.md`. This kept late bug fixes to the same standard as the first build
-instead of letting the codebase drift.
+requirement (R2.6, R2.7, R3.9 through R3.14, R4.3, R4.6, R4.7, R5.5, R5.6,
+R6.6, R6.7, R6.8, R8.7 through R8.10), the design doc was updated, a failing
+test was written, and only then was the code changed. The fix rounds are
+visible as Phases 6 through 13 in `tasks.md`, including the production fix
+(task 56) where a Vercel deploy's logs showed the Edge runtime's `fetch` to the
+archive failing, so the proxies were moved to the Node.js runtime under a new
+task with its own tests. This kept late bug fixes to the same standard as the
+first build instead of letting the codebase drift.
 
 ## Steering docs, and which mattered most
 
@@ -107,10 +110,12 @@ What it enabled: finding brand-safe demo URLs. Running the three tools against
 the live archive (through `tools/wayback-mcp/scripts/demo-probe.ts`, which calls
 the same functions the server exposes and counts every request) used 12 archive
 requests to settle on two public-domain NASA education pages: `kids.msfc.nasa.gov`
-(last working capture 26 September 2007, with Flash in its 30 December 2005
-capture, confirmed playable) and `spacelink.nasa.gov` (last working capture 31
-January 2005). The findings and timestamps are in `docs/demo-urls.md`. The MCP
-server replaced hand-run archive queries with a repeatable, typed interface.
+(last working capture of the real site 12 April 2006, which the redirect-stub
+rule in task 51 reports instead of a later 200 stub, with Flash in its
+30 December 2005 capture whose `.swf` bytes the `/api/swf` proxy serves) and
+`spacelink.nasa.gov` (last working capture 31 January 2005). The findings and
+timestamps are in `docs/demo-urls.md`. The MCP server replaced hand-run archive
+queries with a repeatable, typed interface.
 
 ## Property-based testing
 
@@ -151,10 +156,11 @@ as "none fit".
 
 ## Numbers, for reference
 
-- Spec: 3 files (requirements, design, tasks); 49 numbered tasks across 11
-  phases (0 through 10).
+- Spec: 3 files (requirements, design, tasks); 56 numbered tasks across 14
+  phases (0 through 13). The three submission-cleanup tasks (57 through 59) are
+  recorded in `docs/kiro-log.md` rather than `tasks.md`.
 - Steering: 4 docs.
-- Tests: 53 test files, 309 tests, all offline; 2 of them property-based
+- Tests: 56 test files, 342 tests, all offline; 2 of them property-based
   (fast-check).
 - MCP server: 3 tools, 9 offline tests, 12 live archive requests used for the
   demo hunt.
