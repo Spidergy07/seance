@@ -21,13 +21,67 @@ export type UpstreamErrorKind =
 export class UpstreamError extends Error {
   readonly kind: UpstreamErrorKind;
   readonly status: number | undefined;
+  /**
+   * The original error this one was mapped from, when there is one. For a
+   * failed `fetch` the real reason (DNS, TLS, connection refused) lives on the
+   * thrown `TypeError`'s own `cause`, so we keep it here for logging.
+   */
+  readonly cause: unknown;
 
-  constructor(kind: UpstreamErrorKind, message: string, status?: number) {
+  constructor(
+    kind: UpstreamErrorKind,
+    message: string,
+    status?: number,
+    cause?: unknown,
+  ) {
     super(message);
     this.name = 'UpstreamError';
     this.kind = kind;
     this.status = status;
+    this.cause = cause;
   }
+}
+
+/**
+ * Describe an error's `cause` compactly for a log line: name, message, and a
+ * `code` (e.g. `ENOTFOUND`) when present. No bodies, no stacks.
+ */
+function describeCause(cause: unknown): unknown {
+  if (cause === undefined || cause === null) {
+    return undefined;
+  }
+  if (cause instanceof Error) {
+    return {
+      name: cause.name,
+      message: cause.message,
+      code: (cause as { code?: unknown }).code,
+    };
+  }
+  return String(cause);
+}
+
+/**
+ * Log an upstream/proxy failure to stderr so it shows up in the platform's
+ * function logs (e.g. `vercel logs`). Without this the proxies returned a plain
+ * JSON error and logged nothing, so a production failure left no trace. The
+ * user-facing response stays plain; this line is for operators and captures the
+ * real cause (including a nested `fetch` cause such as `ENOTFOUND`).
+ */
+export function logProxyFailure(scope: string, error: unknown): void {
+  const detail: Record<string, unknown> = { scope };
+  if (error instanceof UpstreamError) {
+    detail.kind = error.kind;
+    detail.status = error.status;
+    detail.message = error.message;
+    detail.cause = describeCause(error.cause);
+  } else if (error instanceof Error) {
+    detail.name = error.name;
+    detail.message = error.message;
+    detail.cause = describeCause((error as { cause?: unknown }).cause);
+  } else {
+    detail.value = String(error);
+  }
+  console.error('[seance proxy] upstream failure', detail);
 }
 
 /** Injectable side effects, defaulted to real implementations. */
@@ -156,7 +210,7 @@ export async function fetchWithRetry(
         : `Network error contacting upstream: ${String(
             (error as { message?: unknown })?.message ?? error,
           )}`;
-      lastError = new UpstreamError(kind, message);
+      lastError = new UpstreamError(kind, message, undefined, error);
       if (isLast) {
         throw lastError;
       }

@@ -1410,3 +1410,35 @@ test first where testable; full suite + typecheck + lint green after each.
 - Verified: 336 tests pass (+5), typecheck and lint clean. That a real failed
   archive image renders the placeholder in the browser is browser-only; added
   to the re-check list below.
+
+## Task 55 — Log the real cause of a proxy failure
+
+- Problem (production, Vercel): at `https://kiroween-seance.vercel.app` the
+  static app loaded and the `/api/swf` host guard worked (a non-archive host
+  returned 400), so the Edge functions ran, but every archive call failed:
+  `curl .../api/cdx?url=...` returned
+  `502 {"error":"network","message":"Could not reach the Internet Archive."}`.
+  That exact body is the handlers' catch-all fallback, not the mapped
+  `UpstreamError` message ("Network error contacting upstream: ..."), and
+  `vercel logs` was empty because the proxies logged nothing. So the real cause
+  of the failed `fetch` was hidden twice over: swallowed into a generic message
+  and never written to the function log.
+- Fix (R8.4, design §11):
+  - `api/http.ts`: `UpstreamError` now carries the original error as `cause`,
+    and `fetchWithRetry` passes the thrown `fetch` error into the network-kind
+    `UpstreamError`. Node's `fetch` throws a `TypeError('fetch failed')` whose
+    real reason (DNS/TLS/refused, e.g. `ENOTFOUND`) sits on that error's own
+    `cause`, so keeping it is what lets a log line name the reason.
+  - New `logProxyFailure(scope, error)` in `api/http.ts` `console.error`s a
+    compact detail object: scope, and for an `UpstreamError` its kind/status/
+    message plus the nested cause (name, message, `code`); for a plain `Error`
+    its name/message/cause. No bodies, no stacks. Called at the top of every
+    catch in `cdx.ts`, `snapshot.ts`, and `swf.ts`, so a production failure now
+    appears in `vercel logs`. The user-facing JSON is unchanged (still plain).
+- Kiro features used: spec-first (Phase 13 task 55, R8.4/D11 cited), test-first
+  (a network `UpstreamError` keeps its `cause`; `logProxyFailure` logs the
+  kind/status/cause of an `UpstreamError` and the name/message/cause of a plain
+  `Error` — red before the helper existed), voice.md (the user-facing message
+  stays plain and blames neither the user nor invents a cause).
+- Verified: 339 tests pass (full suite), typecheck and lint clean. The error
+  paths now print the detail line to stderr under test, as expected.

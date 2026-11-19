@@ -16,6 +16,7 @@ import {
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
+  logProxyFailure,
   statusForUpstreamError,
   type HttpDeps,
   type RetryOptions,
@@ -109,6 +110,7 @@ export async function handleSwfRequest(
       },
     });
   } catch (error) {
+    logProxyFailure('swf', error);
     if (error instanceof UpstreamError) {
       return jsonResponse(
         { error: error.kind, message: error.message },

@@ -12,6 +12,7 @@ import {
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
+  logProxyFailure,
   statusForUpstreamError,
   type HttpDeps,
   type RetryOptions,
@@ -182,6 +183,7 @@ export async function handleCdxRequest(
     cache.set(originalUrl, rows);
     return jsonResponse({ rows }, 200);
   } catch (error) {
+    logProxyFailure('cdx', error);
     if (error instanceof UpstreamError) {
       return jsonResponse(
         { error: error.kind, message: error.message },

@@ -15,6 +15,7 @@ import {
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
+  logProxyFailure,
   statusForUpstreamError,
   type HttpDeps,
   type RetryOptions,
@@ -131,6 +132,7 @@ export async function handleSnapshotRequest(
       headers: { 'content-type': contentType },
     });
   } catch (error) {
+    logProxyFailure('snapshot', error);
     if (error instanceof UpstreamError) {
       return jsonResponse(
         { error: error.kind, message: error.message },

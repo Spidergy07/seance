@@ -535,3 +535,38 @@ tests and typecheck pass after each.
     placeholder. [R3.13, R7.4, D10]
     - Tests (first): the reader output carries the same image-guard behaviour so
       a failed or tracking-size image does not render as a broken-image icon.
+
+## Phase 13 — Production archive-call failure (Vercel)
+
+Found by a human testing the production deploy at
+`https://kiroween-seance.vercel.app`. The static app loaded (200) and the
+`/api/swf` host guard worked (a non-archive host returned 400), so the functions
+ran, but every archive call failed: `/api/cdx` returned
+`502 {"error":"network","message":"Could not reach the Internet Archive."}`.
+That body is the handlers' catch-all fallback, not the mapped `UpstreamError`
+message, and `vercel logs` showed nothing because the proxies logged nothing.
+Spec first, a failing test first where testable, one commit per fix; tests and
+typecheck pass after each.
+
+55. [x] **Log the real cause of a proxy failure.** The proxies returned a plain
+    JSON error and logged nothing, so a production failure left no trace in
+    `vercel logs` and the real reason (a failed `fetch`'s nested `cause`, e.g.
+    `ENOTFOUND`/TLS/refused) was hidden. Carry the original error as
+    `UpstreamError.cause`, add `logProxyFailure(scope, error)` that
+    `console.error`s the kind/status/message and the nested cause (name,
+    message, `code`), and call it in every proxy catch block. The user-facing
+    message stays plain. [R8.4, D11]
+    - Tests (first): a network `UpstreamError` keeps the original fetch error as
+      its `cause`; `logProxyFailure` logs an `UpstreamError`'s kind/status/cause
+      and a plain `Error`'s name/message/cause.
+
+56. [ ] **Move the proxies to the Node.js runtime with a normal User-Agent.**
+    The three functions declared `export const config = { runtime: 'edge' }`.
+    The Edge runtime's `fetch` to `web.archive.org` failed in production (the
+    handler ran but the archive request never succeeded), which the catch-all
+    reported as a bare network error. Switch the functions to Vercel's default
+    Node.js serverless runtime (drop the `edge` config, set a sensible
+    `maxDuration`) and send a normal User-Agent that identifies Seance. [R9.1,
+    D11, D13]
+    - Verify on a preview deploy: `/api/cdx` returns 200 with rows and `/api/swf`
+      returns 200 with `access-control-allow-origin` and FWS/CWS bytes.

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   DEFAULT_RETRY_OPTIONS,
   UpstreamError,
   fetchWithRetry,
+  logProxyFailure,
   parseRetryAfter,
   statusForUpstreamError,
   type HttpDeps,
@@ -125,6 +126,60 @@ describe('fetchWithRetry', () => {
     const res = await fetchWithRetry('https://x/', {}, deps(fetchImpl), fastOptions);
     expect(res.status).toBe(200);
     expect(calls).toHaveLength(2);
+  });
+
+  it('keeps the original fetch error as the cause of a network UpstreamError', async () => {
+    // Node's fetch throws a TypeError whose real reason (DNS, TLS, refused)
+    // sits on its own `cause`. The proxy must preserve it so logs can show it.
+    const underlying = new TypeError('fetch failed');
+    (underlying as { cause?: unknown }).cause = Object.assign(
+      new Error('getaddrinfo ENOTFOUND web.archive.org'),
+      { code: 'ENOTFOUND' },
+    );
+    const { fetchImpl } = scriptedFetch([() => Promise.reject(underlying)]);
+    await expect(
+      fetchWithRetry('https://x/', {}, deps(fetchImpl), {
+        ...fastOptions,
+        maxAttempts: 1,
+      }),
+    ).rejects.toMatchObject({ kind: 'network', cause: underlying });
+  });
+});
+
+describe('logProxyFailure', () => {
+  it('logs an UpstreamError with its kind, status, and nested cause', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const cause = Object.assign(new Error('getaddrinfo ENOTFOUND'), {
+        code: 'ENOTFOUND',
+      });
+      logProxyFailure(
+        'cdx',
+        new UpstreamError('network', 'Network error contacting upstream', undefined, cause),
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      const detail = spy.mock.calls[0]?.[1] as Record<string, unknown>;
+      expect(detail).toMatchObject({ scope: 'cdx', kind: 'network' });
+      expect(detail.cause).toMatchObject({ code: 'ENOTFOUND' });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('logs a plain Error with its name, message, and cause', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const err = new TypeError('fetch failed');
+      (err as { cause?: unknown }).cause = Object.assign(new Error('socket hang up'), {
+        code: 'ECONNRESET',
+      });
+      logProxyFailure('swf', err);
+      const detail = spy.mock.calls[0]?.[1] as Record<string, unknown>;
+      expect(detail).toMatchObject({ scope: 'swf', name: 'TypeError' });
+      expect(detail.cause).toMatchObject({ message: 'socket hang up', code: 'ECONNRESET' });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
