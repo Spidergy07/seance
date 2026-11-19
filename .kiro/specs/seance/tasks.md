@@ -342,3 +342,54 @@ pass after each.
     - Tests (first): when the page has Flash, the built srcdoc carries the
       bootstrap, disables the warning UI, and contains the plain notice text and
       an error handler.
+
+## Phase 9 — Restored-render / accounting / copy fix round (post-launch bugs)
+
+Found by a human re-testing the running app (Chrome) against the live Internet
+Archive after Phase 8. Verified against live CDX for `www.geocities.com/Athens/`
+and `homestarrunner.com`. One local commit per task; spec first, a failing test
+first, tests and typecheck pass after each.
+
+39. [x] **Honest accounting + robust restored images.** On
+    `www.geocities.com/Athens/` the certificate read "3 of 3 assets recovered,
+    100%" while the restored page showed a broken-image icon. The two images are
+    1×1 tracking pixels (`visit.geocities.com/visit.gif`,
+    `geo.yahoo.com/serv?s=...`); their only working captures sit at timestamps
+    far from the page, so the page-timestamp `id_` URL 302-redirects at render.
+    Classify an asset recovered only on a status-200 capture (a 3xx/redirect or
+    other non-200 is not recovered, R4.6); in the restored view, hide tracking
+    images sized 1×1 or 0×0, and replace an image that fails to load with a
+    small styled placeholder instead of the broken-image icon (an injected
+    document `load`/`error` listener). [R4.6, R3.13, D6, D8.1]
+    - Tests (first): `resolveAssetStatuses` reports a redirect (3xx) capture as
+      missing; the built srcdoc carries an image guard that checks `naturalWidth`
+      for 1×1/0×0, listens for `error`, and injects the plain placeholder text.
+
+40. [x] **Scale fixed-width pages to fit the pane.** Old pages (500–800px tables,
+    a 550px Flash stage) overflowed the Restored pane at 375px and in the ~546px
+    desktop pane. Inject a fit-to-width script that measures the frame's
+    `scrollWidth` against its `innerWidth` and applies a CSS `transform: scale`
+    (top-left origin, compensating width), only scaling down, re-measured on
+    resize, keeping Flash interactive. [R3.12, D8.1]
+    - Tests (first): the built srcdoc carries the fit script (measures
+      `scrollWidth`, listens for `resize`, applies a `scale(` transform and only
+      shrinks).
+
+41. [x] **Style the injected notices.** The stopped-redirect note, Flash
+    notices, and the new image placeholder rendered as unstyled default serif
+    inside the archived document. Inject a small self-contained `<style>` for
+    `[data-seance-refresh]`/`[data-seance-flash]`/`[data-seance-img]` (own dark
+    background, light ink, candle-amber accent, sans-serif), readable on light
+    and dark archived pages. [R3.14, D8.1]
+    - Tests (first): the built srcdoc contains a style block with rules for the
+      three notice attributes and a background/colour so the notices are not
+      default text.
+
+42. [x] **Copy polish (anti-slop).** Replace the em-dash subtitle pattern in the
+    section headings ("Death certificate — …", "Reader — …", "Restored — …",
+    "Reach an older copy — …") with a plain subtitle line under each heading.
+    Re-read every UI string against voice.md; cut filler and repetition; add no
+    hype words. [voice.md]
+    - Tests (first): each panel renders its themed heading and its literal
+      meaning as a separate subtitle element, and the heading text carries no
+      em dash.

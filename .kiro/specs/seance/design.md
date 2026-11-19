@@ -212,6 +212,16 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 - `recoveryPercent = total === 0 ? 100 : Math.round(recovered / total * 100)`.
 - `unknown` and `missing` never count as recovered (R4.4, R8.6).
 - Grouping for the report: bucket missing assets by `kind` (R4.5).
+- Recovered means status 200 (R4.6). `dom/asset-status.resolveAssetStatuses`
+  counts an asset recovered only when its looked-up capture is a 200; a capture
+  with any other status (including a 3xx redirect) is `missing`, and a URL the
+  lookup left undetermined is `unknown`. `core/capture-select.selectBest`
+  already filters to 200, so a redirect-only asset resolves to no working
+  capture and is reported missing. Note a consequence seen on GeoCities
+  tracking pixels: an asset can have a working capture at a timestamp far from
+  the page's (e.g. 11 years later), so the page-timestamp `id_` URL 302-
+  redirects at render time even though accounting found a 200 elsewhere; the
+  restored-view image guard (§8.1, R3.13) catches that at runtime.
 - Liveness (R5.1): `core/liveness.classifyLiveness(timestamp, now)` decides
   whether the last working capture is recent (within `RECENTLY_ALIVE_DAYS`, 30).
   When it is, the certificate does not show a death date; it shows "Still
@@ -265,6 +275,35 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   sandbox token list; the guard plus the meta-refresh neutralisation in §7
   cover the self-navigation paths (meta refresh, forms, popups) that otherwise
   blanked the restored view.
+
+### 8.1 In-frame scripts injected into the restored document (tasks 39–41)
+
+`buildRestoredSrcDoc` (ui/restored-pane-logic.ts) assembles the iframe document.
+Besides the click interceptor and navigation/Ruffle guards (§8, §9.2), it
+injects three app-controlled pieces. All are constants, never archived content.
+
+- **Fit-to-width (R3.12, task 40).** Old pages assume a fixed width (500–800px
+  tables, a 550px Flash stage) and overflow the pane, badly at 375px and in the
+  ~546px desktop pane. A small script measures `documentElement.scrollWidth`
+  against the frame's own `innerWidth` and, when the content is wider, applies a
+  CSS `transform: scale(k)` with `transform-origin: top left` and a compensating
+  width so the page fits. It only scales down (`k = min(1, innerWidth/scrollWidth)`),
+  re-measures on `resize`, and uses `transform` (not `zoom`) so pointer events
+  still reach Ruffle and links. Reduced-motion is respected by having no
+  transition.
+- **Image guard (R3.13, task 39).** A capture-phase `load`/`error` listener on
+  the document: an image that loads at 1×1 or 0×0 (a tracking pixel, no content)
+  is hidden; an image that fails to load is replaced with a small styled
+  placeholder (`data-seance-img`) carrying the plain text
+  `RESTORED_IMAGE_PLACEHOLDER_TEXT`, instead of the browser's broken-image icon.
+  An initial scan covers images that settled before the listener attached.
+- **Notice style (R3.14, task 41).** A `<style>` with self-contained rules for
+  every Seance-injected notice (`[data-seance-refresh]`, `[data-seance-flash]`,
+  `[data-seance-img]`): its own dark background, light ink, candle-amber accent,
+  and sans-serif face, so the notices read clearly on light or dark archived
+  pages rather than inheriting the page's default serif. The style is injected
+  into `<head>` when present, else into the body-end group; colours are literal
+  (the iframe has no access to the app's theme.css variables).
 
 ## 9. Flash via Ruffle (dom/flash.ts)
 - Detect `<object>/<embed>` referencing `.swf` and bare `.swf` links.

@@ -84,6 +84,20 @@ load from the archive, so that it looks and works like the original.
 - R3.11 THE SYSTEM SHALL remove any archived `<meta http-equiv="Content-Security-Policy">`
   so the original page's policy cannot stop archive-served assets or Seance's
   own in-frame scripts from loading.
+- R3.12 WHERE an archived page is wider than the Restored pane (old fixed-width
+  layouts, e.g. 500–800px tables or a 550px Flash stage), THE SYSTEM SHALL scale
+  the restored document down to fit the pane width, SHALL re-measure and rescale
+  on resize, and SHALL only scale down (never enlarge), keeping the content
+  readable and Flash interactive.
+- R3.13 WHEN an image in the restored view carries no content (its rendered
+  size is 1×1 or 0×0, a tracking pixel), THE SYSTEM SHALL hide it. WHEN an
+  image in the restored view fails to load, THE SYSTEM SHALL replace it with a
+  small styled "not recovered" placeholder rather than leave the browser's
+  broken-image icon.
+- R3.14 THE SYSTEM SHALL give every notice it injects into the restored
+  document (the stopped-redirect note, the Flash notices, the image
+  placeholder) a small self-contained style that is readable on both light and
+  dark archived pages, so an injected notice is never unstyled default text.
 
 ## R4 — Report what could not be recovered
 **User story:** As a visitor, I want to know exactly what is missing, so that I
@@ -99,6 +113,9 @@ can trust what I am seeing.
   "unknown" and SHALL NOT count it as recovered.
 - R4.5 THE SYSTEM SHALL group missing assets by type (image, stylesheet,
   script, media, other) in the report.
+- R4.6 WHERE an asset's archived lookup yields only redirects (3xx) or other
+  non-200 responses, THE SYSTEM SHALL report it as not recovered. Only a
+  working (status-200) capture counts as recovered.
 
 ## R5 — Death certificate panel
 **User story:** As a visitor, I want a clear summary of when the site died and
