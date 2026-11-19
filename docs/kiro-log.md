@@ -1037,3 +1037,93 @@ verifier knows what changed):
   notice) is browser-only, like the other Ruffle checks; the test pins the
   injected contract.
 - Verified: full suite 283 passing; typecheck, lint, and `npm run build` clean.
+
+
+## Phase 9 — Restored-render / accounting / copy fix round
+
+Found by a human re-testing the running app (Chrome) against the live Internet
+Archive. Before touching code I confirmed the data with a few one-shot CDX/HEAD
+requests against the live archive (no browser, within the 10-request budget):
+`www.geocities.com/Athens/` references one script and two 1×1 tracking pixels
+(`visit.geocities.com/visit.gif`, `geo.yahoo.com/serv?s=76000424&t=971786877`);
+both pixels *do* have status-200 captures, but at timestamps far from the page
+(visit.gif next-day, serv only in 2011), so the page-timestamp `id_` URL
+returns HTTP 302 at render time while CDX accounting still finds a 200. That
+mismatch — recovered per CDX, broken at render — is the root of issue 1.
+
+Spec first for the whole round: requirements R3.12–R3.14 and R4.6, design §8.1
+(the in-frame injected scripts) plus the recovered-means-200 note in §6, and
+tasks 39–42. One commit per task; a failing test first; full suite + typecheck
++ lint + build green after each.
+
+### Task 39 — Honest accounting + robust restored images
+
+- Accounting (R4.6): `dom/asset-status.resolveAssetStatuses` already counts only
+  a status-200 capture as recovered (`selectBest` filters to 200, so a
+  redirect-only asset resolves to no working capture → missing). Pinned it with
+  a new test feeding the lookup 3xx captures and asserting `missing` + no
+  `archiveUrl`.
+- Restored view (R3.13): new `IMAGE_GUARD_SCRIPT` injected into the iframe
+  (`src/ui/restored-pane-logic.ts`). Capture-phase `load`/`error` listeners plus
+  an initial scan: an image that loads at 1×1/0×0 (a tracking pixel) is hidden;
+  an image that fails to load is replaced with a small placeholder
+  (`data-seance-img`) carrying the single-sourced `RESTORED_IMAGE_PLACEHOLDER_TEXT`,
+  instead of the browser's broken-image icon.
+- Tests (first): `tests/dom/asset-status.test.ts` redirect case;
+  `tests/ui/restored-pane-logic.test.ts` asserts the srcdoc carries the
+  `naturalWidth` check, an `error` listener, `data-seance-img`, and the
+  placeholder text.
+- Note: the certificate percent is computed from CDX, so it cannot see a
+  runtime 302; the image guard is the honest runtime remedy the brief asked for
+  (hide pixels, placeholder for broken images). Design §6/§8.1.
+
+### Task 40 — Scale fixed-width pages to fit the pane
+
+- `FIT_TO_WIDTH_SCRIPT` injected into the iframe (R3.12): measures
+  `documentElement.scrollWidth` against the frame's `innerWidth` and, when
+  wider, scales `body` down with `transform: scale(k)` (top-left origin,
+  compensating width), `k = min(1, vw/sw)` so it only shrinks, re-measured on
+  `resize` and `load`. `transform` (not `zoom`) keeps Flash and links
+  interactive; no transition, so no motion.
+- Tests (first): the built srcdoc carries `scrollWidth`, an `resize` listener, a
+  `scale(` transform, and `Math.min(1`.
+
+### Task 41 — Style the injected notices
+
+- `NOTICE_STYLE` injected into the iframe head (R3.14), with a body-end fallback
+  via the new `injectIntoHead` helper (replacing the old `injectRuffle`). Rules
+  for `[data-seance-refresh]`/`[data-seance-flash]`/`[data-seance-img]`: own dark
+  background, light ink, candle-amber accent, sans-serif face — literal colours,
+  since the archived document has no access to the app's theme.css. The notices
+  now read on light or dark archived pages instead of default serif.
+- Tests (first): the srcdoc contains a `<style>` in the head with the three
+  notice selectors and a background/font.
+
+### Task 42 — Copy polish (anti-slop)
+
+- Replaced the em-dash subtitle clause on the Death certificate, Reader,
+  Restored, and capture-picker headings with a plain literal subtitle on its own
+  line (voice.md themed+literal pairing kept, the em dash dropped). Renamed the
+  `__literal` CSS classes to `__subtitle`.
+- Re-read the rendered UI strings: no hype words (grep clean), the only
+  remaining em dash is in a source comment, not rendered.
+- Tests (first): new `tests/ui/copy.test.ts` asserts each panel renders its
+  themed heading and literal subtitle and no rendered em dash; updated the three
+  existing tests that asserted the old lowercase em-dash substrings.
+
+### Re-check in a browser (needs a human; `npm run dev`, no server started here)
+
+- `http://www.geocities.com/Athens/`: the two 1×1 pixels are hidden (no broken
+  icon); any image that still fails shows the styled "not recovered" placeholder
+  rather than the browser glyph; confirm the certificate count reads honestly
+  against what is shown.
+- A wide fixed-layout page (and `homestarrunner.com`'s 550px Flash stage) fits
+  the Restored pane at 375px and in the ~546px desktop pane, with Flash still
+  clickable; resize the window and confirm it rescales.
+- The stopped-redirect note, Flash "not saved" notice, and the image
+  placeholder render as styled boxes (dark panel, amber accent) on both a light
+  and a dark archived page, not default serif.
+- Headings read "Death certificate / Reader / Restored / Reach an older copy"
+  each with a plain subtitle line beneath, no em dash.
+- Re-run the earlier error-state and accessibility/keyboard checks; nothing in
+  this round changed those paths.
