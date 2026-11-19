@@ -1,0 +1,130 @@
+{
+  "name": "seance",
+  "description": "Build agent for Seance: restores dead websites from the Wayback Machine. Loads the steering docs and the seance spec, and runs the vitest suite whenever a TypeScript source or test file changes.",
+  "prompt": "You are the build agent for Seance, a web app that restores dead websites from the Internet Archive Wayback Machine. Follow the steering docs in .kiro/steering/ and the spec in .kiro/specs/seance/. Keep src/core/ pure (no DOM, no network, no React) so it stays property-testable. Route all archive traffic through the api/ proxy; never call archive.org directly from the browser. Treat archived HTML and scripts as untrusted and keep them in a sandboxed iframe. Use plain English with no hype words (see voice.md). Write tests with vitest, and property tests with fast-check for the URL rewriter (idempotence, confinement to the archive prefix, fragment and query preservation). Work only inside this directory. Do not run git push, create remote repos, install anything globally, or start long-running servers.",
+  "tools": [
+    "code",
+    "glob",
+    "grep",
+    "read",
+    "shell",
+    "write"
+  ],
+  "allowedTools": [
+    "read",
+    "grep",
+    "glob",
+    "code"
+  ],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        "**"
+      ],
+      "deniedPaths": [
+        "LICENSE"
+      ]
+    },
+    "shell": {
+      "allowedCommands": [
+        "npm run .*",
+        "npm test.*",
+        "npm install",
+        "npm ci",
+        "npx --no-install .*",
+        "npx vitest.*",
+        "node .*"
+      ],
+      "deniedCommands": [
+        "git push.*",
+        "git remote add.*",
+        "npm install -g.*",
+        "npm i -g.*",
+        "rm -rf .*"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "file://README.md",
+    "file://.kiro/steering/product.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/voice.md",
+    "file://.kiro/specs/seance/requirements.md",
+    "file://.kiro/specs/seance/design.md",
+    "file://.kiro/specs/seance/tasks.md",
+    "skill://.kiro/skills/**/SKILL.md"
+  ],
+  "hooks": [
+    {
+      "name": "postToolUse-0",
+      "trigger": "postToolUse",
+      "matcher": "write",
+      "action": {
+        "type": "command",
+        "command": "bash .kiro/hooks/run-tests.sh"
+      },
+      "timeout": 120,
+      "maxOutputSize": 20480
+    }
+  ],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "shell",
+        "match": [
+          "npm run *",
+          "npm test*",
+          "npm install",
+          "npm ci",
+          "npx --no-install *",
+          "npx vitest*",
+          "node *"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "shell",
+        "match": [
+          "git push*",
+          "git remote add*",
+          "npm install -g*",
+          "npm i -g*",
+          "rm -rf *"
+        ],
+        "effect": "deny"
+      },
+      {
+        "capability": "fs_write",
+        "match": [
+          "**"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "match": [
+          "LICENSE"
+        ],
+        "effect": "deny"
+      },
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ],
+    "policies": [
+      "read-only-shell"
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 3,
+    "fingerprint": "sha256:3e967370d7d560d871474a09f07599c6c49dffdde71aa2bb66c6d71f443fe80a",
+    "source": "sha256:e057b87ccdfaaf22b9891b308a954fee0579d20e4c40c3991551ed2d9607bb3f"
+  }
+}
