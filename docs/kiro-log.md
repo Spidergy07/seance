@@ -1442,3 +1442,55 @@ test first where testable; full suite + typecheck + lint green after each.
   stays plain and blames neither the user nor invents a cause).
 - Verified: 339 tests pass (full suite), typecheck and lint clean. The error
   paths now print the detail line to stderr under test, as expected.
+
+## Task 56 — Move the proxies to the Node.js runtime (production archive calls)
+
+- Problem (production, Vercel): with task-55 logging in place, the real cause
+  of the failed archive calls became visible. The three `api/` functions ran on
+  the Edge runtime (`export const config = { runtime: 'edge' }`), and the Edge
+  runtime's `fetch` to `web.archive.org` did not succeed in production, so every
+  `/api/cdx` call returned the catch-all `502 network` error.
+- Fix (R9.1, design §11, §13): switch the functions to Vercel's default Node.js
+  serverless runtime and send a normal User-Agent. Moving off Edge exposed two
+  Node-adapter requirements, each found from a preview deploy's
+  `vercel logs --json` (not guessed):
+  1. `new URL(request.url)` threw `ERR_INVALID_URL` with input
+     `/api/cdx?url=...`. The Edge runtime sets `request.url` to an absolute URL;
+     the Node.js runtime adapter sets it to a path-and-query only. Added
+     `toRequestUrl(request)` in `api/http.ts`, which resolves `request.url`
+     against a dummy base so both shapes parse (we only read `pathname` and
+     `searchParams`), and used it in `cdx.ts`, `snapshot.ts`, `swf.ts`, and
+     `router.ts`.
+  2. `FUNCTION_INVOCATION_TIMEOUT` with the log line
+     "WARN: default export returned a `Response` … the default-export signature
+     is `(req, res) => void`". The Node.js runtime reads `export default
+     function(request)` as the legacy `(req, res)` handler, ignores the returned
+     `Response`, and the function hangs to the 30s platform limit. The same
+     mis-call passed Node's `res` as our second arg, which the logging surfaced
+     as "random is not a function" (`deps.random` was `res.random`). Fix:
+     expose the Web handler as a named `export function GET(request)` and remove
+     the default export (when both exist the Node runtime still uses the
+     default, so the default had to go). Repointed `router.ts` to the named
+     handler imports; the dev middleware and tests already used named imports.
+  - Runtime config is now `export const config = { maxDuration: 30 }` (no
+    `runtime` key = Node default), giving headroom over the proxy's ~14s
+    worst-case retry wait. The User-Agent is centralised as `SEANCE_USER_AGENT`
+    in `api/http.ts` (`Mozilla/5.0 (compatible; Seance/1.0; +<app url>)`), still
+    plain text that identifies Seance, imported by all three proxies. README
+    deploy notes updated from "Edge Functions" to Node.js functions.
+- Verified on preview deploy
+  `https://kiroween-seance-4taia29ic-thanadech-saengchans-projects.vercel.app`
+  (authenticated `vercel curl`, deployment protection on): `/api/cdx?url=
+  http://spacelink.nasa.gov/` returns HTTP 200 with a 113 KB CDX `rows` array;
+  `/api/swf?url=<archive welcome.swf>` returns HTTP 200 with
+  `access-control-allow-origin: *`, `content-type: application/x-shockwave-flash`,
+  and a 16 KB body beginning with the `CWS` (compressed SWF) magic. The
+  `/api/swf` non-archive-host guard still returns 400. Four preview deploys used
+  (within the five-deploy budget); not promoted to production.
+- Kiro features used: spec-first (Phase 13 task 56, R9.1/D11/D13 cited),
+  test-first (a `toRequestUrl` unit test for both the absolute and path-only
+  shapes, and a `handleCdxRequest` test with a path-only `request.url` that
+  returns rows instead of throwing — red before the helper existed), the
+  task-55 logging + `vercel logs --json` to find each cause rather than guess,
+  voice.md (user-facing messages unchanged and plain).
+- Verified locally: 342 tests pass (+3), typecheck, lint, and build clean.

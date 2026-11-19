@@ -560,7 +560,7 @@ typecheck pass after each.
       its `cause`; `logProxyFailure` logs an `UpstreamError`'s kind/status/cause
       and a plain `Error`'s name/message/cause.
 
-56. [ ] **Move the proxies to the Node.js runtime with a normal User-Agent.**
+56. [x] **Move the proxies to the Node.js runtime with a normal User-Agent.**
     The three functions declared `export const config = { runtime: 'edge' }`.
     The Edge runtime's `fetch` to `web.archive.org` failed in production (the
     handler ran but the archive request never succeeded), which the catch-all
@@ -570,3 +570,10 @@ typecheck pass after each.
     D11, D13]
     - Verify on a preview deploy: `/api/cdx` returns 200 with rows and `/api/swf`
       returns 200 with `access-control-allow-origin` and FWS/CWS bytes.
+    - Moving off Edge surfaced two Node-adapter requirements (both fixed here,
+      found via the task-55 logging and `vercel logs --json`): the Node runtime
+      sets `request.url` to a path-only value that `new URL()` rejects, and it
+      reads a default export as the legacy `(req, res)` handler, not a Web
+      handler. Resolve `request.url` against a base (`toRequestUrl`) and expose
+      the Web handler as a named `export function GET(request)` with no default
+      export.

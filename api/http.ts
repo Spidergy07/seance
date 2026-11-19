@@ -115,12 +115,33 @@ export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   maxDelayMs: 2000,
 };
 
+/**
+ * A normal User-Agent that identifies Seance in plain text. The archive uses it
+ * to see who is calling (design.md §11). It follows the usual
+ * `Mozilla/5.0 (compatible; ...)` shape with a contact URL, rather than a bare
+ * token, because some upstreams treat unusual agents differently. No marketing.
+ */
+export const SEANCE_USER_AGENT =
+  'Mozilla/5.0 (compatible; Seance/1.0; +https://kiroween-seance.vercel.app)';
+
 export function defaultHttpDeps(): HttpDeps {
   return {
     fetch: globalThis.fetch.bind(globalThis),
     sleep: (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
     random: Math.random,
   };
+}
+
+/**
+ * Build a `URL` from an incoming request. Vercel's Edge runtime sets
+ * `request.url` to an absolute URL, but the Node.js runtime adapter sets it to
+ * a path-and-query only (e.g. `/api/cdx?url=...`), which `new URL()` rejects
+ * with `ERR_INVALID_URL`. Resolving against a dummy base parses both: an
+ * absolute `request.url` ignores the base, a relative one uses it. The handlers
+ * only read `pathname` and `searchParams`, so the dummy host never leaks out.
+ */
+export function toRequestUrl(request: Request): URL {
+  return new URL(request.url, 'http://seance.local');
 }
 
 /** One attempt with a hard timeout enforced by an AbortController. */

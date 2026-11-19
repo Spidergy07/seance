@@ -150,6 +150,26 @@ describe('handleCdxRequest', () => {
     await expect(res.json()).resolves.toEqual({ rows: SAMPLE_ROWS });
   });
 
+  it('handles a path-only request.url from the Node.js runtime adapter', async () => {
+    // Vercel's Node.js runtime sets request.url to a path+query, not an
+    // absolute URL. The handler must still read the query without throwing
+    // ERR_INVALID_URL (the production 500 this fix addresses).
+    const { fetchImpl } = scriptedFetch([
+      () => new Response(JSON.stringify(SAMPLE_ROWS), { status: 200 }),
+    ]);
+    const relative = {
+      url: '/api/cdx?url=http%3A%2F%2Fexample.com%2F',
+    } as Request;
+    const res = await handleCdxRequest(
+      relative,
+      deps(fetchImpl),
+      fastOptions,
+      createCdxMemoryCache(),
+    );
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ rows: SAMPLE_ROWS });
+  });
+
   it('maps a rate-limit give-up to HTTP 429', async () => {
     const { fetchImpl } = scriptedFetch([
       () => new Response('', { status: 429 }),

@@ -6,6 +6,7 @@ import {
   logProxyFailure,
   parseRetryAfter,
   statusForUpstreamError,
+  toRequestUrl,
   type HttpDeps,
   type RetryOptions,
 } from '../../api/http.js';
@@ -197,6 +198,24 @@ describe('parseRetryAfter', () => {
   it('returns null when absent or unparseable', () => {
     expect(parseRetryAfter(null)).toBeNull();
     expect(parseRetryAfter('soon')).toBeNull();
+  });
+});
+
+describe('toRequestUrl', () => {
+  it('parses an absolute request.url (the Edge runtime shape)', () => {
+    const url = toRequestUrl(new Request('https://seance.example/api/cdx?url=x'));
+    expect(url.pathname).toBe('/api/cdx');
+    expect(url.searchParams.get('url')).toBe('x');
+  });
+
+  it('parses a path-only request.url (the Node.js runtime adapter shape)', () => {
+    // Vercel's Node.js adapter sets request.url to a path+query, which
+    // `new URL()` alone rejects with ERR_INVALID_URL. A bare object stands in
+    // for the request because undici's Request constructor needs an absolute
+    // URL and so cannot build this shape directly.
+    const url = toRequestUrl({ url: '/api/cdx?url=http%3A%2F%2Fa.test%2F' } as Request);
+    expect(url.pathname).toBe('/api/cdx');
+    expect(url.searchParams.get('url')).toBe('http://a.test/');
   });
 });
 

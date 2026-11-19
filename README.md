@@ -70,9 +70,12 @@ vercel            # preview deploy
 vercel --prod     # production deploy
 ```
 
-- `api/cdx.ts` and `api/snapshot.ts` deploy as Vercel **Edge Functions** (each
-  declares `export const config = { runtime: 'edge' }`); they use only
-  Web-standard `Request`/`Response`, `fetch`, `URL`, and `AbortController`.
+- `api/cdx.ts`, `api/snapshot.ts`, and `api/swf.ts` deploy as Vercel **Node.js
+  serverless functions** (each sets `export const config = { maxDuration: 30 }`,
+  leaving the runtime at the Node.js default). Each is a Web-standard handler
+  taking a `Request` and returning a `Response`, using only `fetch`, `URL`, and
+  `AbortController`. They first ran on the Edge runtime, but its `fetch` to
+  `web.archive.org` failed in production, so they run on Node instead.
 - The functions are stateless: no database, no stored queries (R9.5).
 - Other free hosts work too; the functions take a Web `Request` and return a
   Web `Response`, so they port to Netlify Functions or a Cloudflare Worker with

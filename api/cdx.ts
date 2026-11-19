@@ -9,11 +9,13 @@
 
 import {
   DEFAULT_RETRY_OPTIONS,
+  SEANCE_USER_AGENT,
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
   logProxyFailure,
   statusForUpstreamError,
+  toRequestUrl,
   type HttpDeps,
   type RetryOptions,
 } from './http.js';
@@ -25,7 +27,7 @@ const CDX_ENDPOINT = 'https://web.archive.org/cdx/search/cdx';
  * A descriptive User-Agent so the archive can identify the caller, as design.md
  * §11 asks. Plain text, no marketing.
  */
-const USER_AGENT = 'Seance/0.1 (+archive recovery tool)';
+const USER_AGENT = SEANCE_USER_AGENT;
 
 /** Build the upstream CDX query URL for one original URL. */
 export function buildCdxRequestUrl(originalUrl: string): string {
@@ -159,7 +161,7 @@ export async function handleCdxRequest(
   options: RetryOptions = DEFAULT_RETRY_OPTIONS,
   cache: CdxMemoryCache = defaultCdxCache,
 ): Promise<Response> {
-  const requestUrl = new URL(request.url);
+  const requestUrl = toRequestUrl(request);
   const originalUrl = validateOriginalUrl(requestUrl.searchParams.get('url'));
 
   if (originalUrl === null) {
@@ -198,10 +200,24 @@ export async function handleCdxRequest(
 }
 
 /**
- * Deploy as a Vercel Edge Function. The handler already takes a Web `Request`
- * and returns a Web `Response`, and uses only Web-standard APIs (`fetch`,
- * `URL`, `AbortController`), so it runs on the free Edge runtime unchanged.
+ * Deploy on Vercel's default Node.js serverless runtime (not Edge). The handler
+ * is a Web-standard `(Request) => Response`, which `@vercel/node` supports, so
+ * the signature is unchanged; only where it runs changes. The Edge runtime's
+ * `fetch` to `web.archive.org` failed in production, so Node is used instead.
+ * `maxDuration` leaves headroom over the proxy's ~14s worst-case retry wait.
  */
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 30 };
 
-export default handleCdxRequest;
+/**
+ * Named GET export so Vercel's Node.js runtime treats this as a Web
+ * (fetch-style) function: it passes a Web `Request` and uses the returned
+ * `Response`. A `export default (request) => Response` is read by the Node
+ * runtime as the legacy `(req, res)` signature instead — its return value is
+ * ignored and the function hangs to the platform timeout
+ * (FUNCTION_INVOCATION_TIMEOUT in the logs). When both a default and a named
+ * method export exist, the Node runtime still uses the default, so there is no
+ * default export here. The extra handler args keep their defaults.
+ */
+export function GET(request: Request): Promise<Response> {
+  return handleCdxRequest(request);
+}

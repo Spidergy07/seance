@@ -12,16 +12,18 @@
 import { buildArchiveUrl } from '../src/core/archive-url.js';
 import {
   DEFAULT_RETRY_OPTIONS,
+  SEANCE_USER_AGENT,
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
   logProxyFailure,
   statusForUpstreamError,
+  toRequestUrl,
   type HttpDeps,
   type RetryOptions,
 } from './http.js';
 
-const USER_AGENT = 'Seance/0.1 (+archive recovery tool)';
+const USER_AGENT = SEANCE_USER_AGENT;
 
 /** A 14-digit Wayback timestamp. */
 const TIMESTAMP_RE = /^\d{14}$/;
@@ -95,7 +97,7 @@ export async function handleSnapshotRequest(
   deps: HttpDeps = defaultHttpDeps(),
   options: RetryOptions = DEFAULT_RETRY_OPTIONS,
 ): Promise<Response> {
-  const requestUrl = new URL(request.url);
+  const requestUrl = toRequestUrl(request);
   const originalUrl = validateOriginalUrl(requestUrl.searchParams.get('url'));
   const timestamp = requestUrl.searchParams.get('timestamp') ?? '';
 
@@ -147,9 +149,12 @@ export async function handleSnapshotRequest(
 }
 
 /**
- * Deploy as a Vercel Edge Function (Web `Request`/`Response`, Web-standard APIs
- * only), so it runs on the free Edge runtime unchanged.
+ * Deploy on Vercel's default Node.js serverless runtime (not Edge), like the
+ * other proxies. The handler is a Web-standard `(Request) => Response`.
  */
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 30 };
 
-export default handleSnapshotRequest;
+/** Named GET export so Vercel's Node.js runtime uses the Web handler (see cdx.ts). */
+export function GET(request: Request): Promise<Response> {
+  return handleSnapshotRequest(request);
+}

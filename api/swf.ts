@@ -13,17 +13,19 @@
 
 import {
   DEFAULT_RETRY_OPTIONS,
+  SEANCE_USER_AGENT,
   UpstreamError,
   defaultHttpDeps,
   fetchWithRetry,
   logProxyFailure,
   statusForUpstreamError,
+  toRequestUrl,
   type HttpDeps,
   type RetryOptions,
 } from './http.js';
 import { ARCHIVE_HOST } from '../src/core/archive-url.js';
 
-const USER_AGENT = 'Seance/0.1 (+archive recovery tool)';
+const USER_AGENT = SEANCE_USER_AGENT;
 
 /** Default content type when the upstream response omits one. */
 const SWF_CONTENT_TYPE = 'application/x-shockwave-flash';
@@ -72,7 +74,7 @@ export async function handleSwfRequest(
   deps: HttpDeps = defaultHttpDeps(),
   options: RetryOptions = DEFAULT_RETRY_OPTIONS,
 ): Promise<Response> {
-  const requestUrl = new URL(request.url);
+  const requestUrl = toRequestUrl(request);
   const archiveUrl = validateArchiveUrl(requestUrl.searchParams.get('url'));
 
   if (archiveUrl === null) {
@@ -124,7 +126,10 @@ export async function handleSwfRequest(
   }
 }
 
-/** Deploy as a Vercel Edge Function, like the other proxies. */
-export const config = { runtime: 'edge' };
+/** Deploy on Vercel's default Node.js serverless runtime, like the others. */
+export const config = { maxDuration: 30 };
 
-export default handleSwfRequest;
+/** Named GET export so Vercel's Node.js runtime uses the Web handler (see cdx.ts). */
+export function GET(request: Request): Promise<Response> {
+  return handleSwfRequest(request);
+}

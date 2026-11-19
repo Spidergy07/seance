@@ -5,12 +5,13 @@
 //
 // Stateless, no DOM, no React (structure.md: api/ holds no DOM/React code).
 
-import handleCdxRequest from './cdx.js';
-import handleSnapshotRequest from './snapshot.js';
-import handleSwfRequest from './swf.js';
+import { handleCdxRequest } from './cdx.js';
+import { handleSnapshotRequest } from './snapshot.js';
+import { handleSwfRequest } from './swf.js';
 import {
   DEFAULT_RETRY_OPTIONS,
   defaultHttpDeps,
+  toRequestUrl,
   type HttpDeps,
   type RetryOptions,
 } from './http.js';
@@ -30,7 +31,7 @@ export async function handleApiRequest(
   deps: HttpDeps = defaultHttpDeps(),
   options: RetryOptions = DEFAULT_RETRY_OPTIONS,
 ): Promise<Response | null> {
-  const { pathname } = new URL(request.url);
+  const { pathname } = toRequestUrl(request);
   if (pathname === CDX_PATH) {
     return handleCdxRequest(request, deps, options);
   }
