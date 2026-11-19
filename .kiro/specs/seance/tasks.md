@@ -183,7 +183,7 @@ Legend: [R#] requirement id, [D#] design section.
     (e.g. an un-archived URL for "no contact"). [R2, R3, R5, R6, R7, R8]
     - Done: a short manual checklist is filled in and noted in the README.
 
-26. **Expand README.** Replace the stub with run/build/deploy steps, the
+26. [x] **Expand README.** Replace the stub with run/build/deploy steps, the
     fixture-based test story, and the Kiro workflow (steering + spec + the
     test-on-change hook). [docs]
 

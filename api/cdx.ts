@@ -150,4 +150,11 @@ export async function handleCdxRequest(
   }
 }
 
+/**
+ * Deploy as a Vercel Edge Function. The handler already takes a Web `Request`
+ * and returns a Web `Response`, and uses only Web-standard APIs (`fetch`,
+ * `URL`, `AbortController`), so it runs on the free Edge runtime unchanged.
+ */
+export const config = { runtime: 'edge' };
+
 export default handleCdxRequest;

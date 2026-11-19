@@ -144,4 +144,10 @@ export async function handleSnapshotRequest(
   }
 }
 
+/**
+ * Deploy as a Vercel Edge Function (Web `Request`/`Response`, Web-standard APIs
+ * only), so it runs on the free Edge runtime unchanged.
+ */
+export const config = { runtime: 'edge' };
+
 export default handleSnapshotRequest;

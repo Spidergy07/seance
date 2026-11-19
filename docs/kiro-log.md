@@ -657,3 +657,32 @@ was built, which Kiro features were used, and any problem hit.
   paused and spaced the remaining requests, and used the outage itself as a real
   data point rather than retrying hard.
 - Verified (data, not browser): 209 tests still pass, typecheck clean.
+
+## Task 26 — Expand README + deploy config
+
+- Rewrote `README.md`: dropped the "planning phase" stub and documented what the
+  app does, the real stack, run/build/test/lint scripts, local development with
+  the api proxy middleware, deploying to Vercel (free tier) with a note on
+  self-hosting Ruffle, the offline fixture-based test story and the property
+  tests, the Kiro workflow (steering + spec + hook + agent + the build log), and
+  the project layout. The task-25 "Manual verification against the live archive"
+  section and its browser-only checklist are preserved.
+- Added the deploy config:
+  - `vercel.json` (Vite framework, build command, output directory).
+  - `api/cdx.ts` and `api/snapshot.ts` each declare
+    `export const config = { runtime: 'edge' }`, so Vercel deploys them as Edge
+    Functions. They already use only Web-standard `Request`/`Response`, `fetch`,
+    `URL`, and `AbortController`, so no code change was needed to run on Edge.
+  - Removed the `export default` from `api/router.ts` so Vercel's file-based
+    routing does not expose the dev-only router helper as a function; the Vite
+    middleware and tests use the named `handleApiRequest`.
+- Did not deploy (per instructions): no `vercel` invocation, no remote created.
+- Kiro features used: the `seance` spec (`tasks.md` task 26, `tech.md` free
+  static host + stateless functions, N3), `structure.md` (layout section),
+  `voice.md` (plain copy). No spec change needed beyond the docs updated in
+  earlier tasks.
+- Problem hit: `vercel.json`'s `functions.<path>.runtime` does not accept the
+  string `"edge"` (that field is for named runtime packages); the Edge runtime
+  is selected by the in-file `export const config` instead, so `vercel.json`
+  keeps only framework/build/output.
+- Verified: 209 tests pass, typecheck, lint, and build clean.

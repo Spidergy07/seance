@@ -8,60 +8,132 @@ shows the restored page beside a clean, mobile-readable version.
 
 Built for the Kiroween 2026 hackathon, category: Resurrection.
 
-> Status: planning phase. The spec and steering docs are written; application
-> code is not built yet.
-
 ## What it does
-- Looks up captures of a URL via the Wayback Machine CDX API.
-- Picks the closest working capture and rewrites the page to load from the
-  archive.
-- Shows a "death certificate": when the site died (last working capture), the
-  recovery percentage, and the assets that could not be recovered.
-- Plays archived `.swf` Flash files with [Ruffle](https://ruffle.rs), the
-  open-source WASM Flash emulator.
-- Shows the restored page next to a cleaned reader view.
+- Looks up captures of a URL via the Wayback Machine CDX API (through our own
+  proxy, never the archive directly from the browser).
+- Picks the closest working (HTTP 200) capture and rewrites the page so links,
+  images, stylesheets, scripts, and media load from the archive.
+- Shows a "death certificate": the date of the last working capture (when the
+  site effectively died), the recovery percentage as a number and a meter, and
+  the assets that could not be recovered, grouped by type.
+- Plays archived `.swf` Flash files with [Ruffle](https://ruffle.rs), loaded
+  inside the sandboxed restored view. Flash with no saved copy gets a plain
+  "not saved" notice instead.
+- Shows the restored page (in a sandboxed iframe) next to a cleaned reader view
+  that leads on a narrow screen.
 
 The seance theme is functional: every themed element maps to real state (see
-`.kiro/steering/voice.md`). No third-party logos or trademarks appear in the
-UI.
+`.kiro/steering/voice.md`). No third-party logos or trademarks appear in the UI.
 
-## Planned stack
-TypeScript end to end. Vite + React for the static frontend, one stateless
-serverless function as the Wayback CDX proxy, Ruffle for Flash, and
-vitest + fast-check for tests (property tests guard the URL rewriter). See
-`.kiro/steering/tech.md` for the reasoning.
+## Built with
+TypeScript end to end.
+- **Frontend:** Vite + React, a plain static bundle.
+- **Archive proxy:** two stateless serverless functions in `api/` (`cdx.ts`,
+  `snapshot.ts`) that front the Wayback Machine. They avoid browser CORS, add
+  timeouts and bounded retry/backoff, and persist nothing.
+- **Core logic:** pure TypeScript in `src/core/` (URL rewriter, archive-URL
+  builder, capture selection, recovery math) with no DOM, no network, no React,
+  so it is property-testable.
+- **Flash:** Ruffle (WASM), loaded from its official build.
+- **Reader view:** `@mozilla/readability`.
+- **Tests:** vitest + fast-check, run under Node with `linkedom`, fully offline.
+
+See `.kiro/steering/tech.md` for the reasoning behind each choice.
+
+## Getting started
+Node 20 LTS. Install dependencies locally (no global installs):
+
+```bash
+npm install      # install project dependencies
+npm run dev      # Vite dev server + the api proxy on one origin (see below)
+npm test         # run the vitest suite once (incl. fast-check property tests)
+npm run build    # type-check, then produce the static bundle in dist/
+npm run lint     # eslint
+npm run typecheck
+```
+
+### Local development with the proxy
+`npm run dev` serves the app and the archive proxy together on one origin. A
+small dev-only Vite middleware (in `vite.config.ts`) routes `/api/cdx` and
+`/api/snapshot` to the same functions that deploy to production, loading them
+through Vite's module loader. So the browser only ever talks to our own origin,
+in development and in production alike. No separate server process is needed.
+
+## Deploying (Vercel, free tier)
+The build output is a static bundle plus two stateless functions, which fits a
+free static host with serverless functions. `vercel.json` sets the Vite
+framework, build command, and output directory.
+
+```bash
+# with the Vercel CLI, from the project root
+vercel            # preview deploy
+vercel --prod     # production deploy
+```
+
+- `api/cdx.ts` and `api/snapshot.ts` deploy as Vercel **Edge Functions** (each
+  declares `export const config = { runtime: 'edge' }`); they use only
+  Web-standard `Request`/`Response`, `fetch`, `URL`, and `AbortController`.
+- The functions are stateless: no database, no stored queries (R9.5).
+- Other free hosts work too; the functions take a Web `Request` and return a
+  Web `Response`, so they port to Netlify Functions or a Cloudflare Worker with
+  a thin adapter.
+
+### Self-hosting Ruffle (optional)
+By default the restored iframe loads the Ruffle runtime from its official public
+build. To avoid any third-party runtime contact, host Ruffle's self-hosted
+build on your own origin and pass its URL to the restored pane
+(`RestoredPane`'s `ruffleScriptUrl`, default `DEFAULT_RUFFLE_SRC` in
+`src/ui/restored-pane-logic.ts`). Loading the Ruffle script sends no user data
+either way; this only changes where the static script comes from.
+
+## Testing
+- The suite runs offline under Node; no test touches the live archive (the CDX
+  and snapshot clients are driven by recorded fixtures under
+  `tests/fixtures/`).
+- The URL rewriter — the correctness-critical unit — has fast-check property
+  tests for its invariants: idempotence, confinement to the archive prefix,
+  and fragment/query preservation. A document-level confinement test asserts
+  that after a full rewrite no element references a non-archive host.
+- An end-to-end test (`tests/integration/recover-flow.test.ts`) drives the
+  whole flow from a fixture through a mocked proxy and asserts the recovery
+  report and the rendered panes.
+
+```bash
+npm test            # all tests once
+npm run test:watch  # watch mode
+```
 
 ## How Kiro is used
 This project is spec-driven with Kiro:
 
 - **Steering** (`.kiro/steering/`): `product.md`, `tech.md`, `structure.md`,
-  and `voice.md` set scope, stack, layout, and copy rules.
+  and `voice.md` set scope, stack, layout, and copy rules. They drove every
+  build decision (for example, the pure-core boundary and the plain-English,
+  no-hype copy).
 - **Spec** (`.kiro/specs/seance/`): `requirements.md` (EARS acceptance
   criteria), `design.md` (architecture, the link rewriter and its invariants,
-  error states), and `tasks.md` (numbered build-order tasks).
+  error states), and `tasks.md` (numbered build-order tasks, checked off as
+  they land). Each task cites the requirements and design sections it satisfies.
 - **Agent + hook** (`.kiro/agents/seance.json`, `.kiro/hooks/run-tests.sh`):
   the `seance` agent loads the steering and spec as context and runs the vitest
   suite automatically whenever a TypeScript source or test file changes, via a
-  `postToolUse` hook matching file writes. The hook stays silent until the
-  toolchain exists.
+  `postToolUse` hook matching file writes.
+- **Property-based tests:** required by the spec for the rewriter and wired in
+  with fast-check (see Testing above).
+- **Build log:** `docs/kiro-log.md` records, per task, what was built, which
+  Kiro features were used, and any problem hit.
 
-## Getting started (once the build phase begins)
-These scripts do not exist yet; they are the planned entry points.
-
-```bash
-npm install      # install project dependencies locally
-npm run dev      # start the Vite dev server
-npm test         # run the vitest suite (incl. fast-check property tests)
-npm run build    # produce the static bundle
+## Project layout
 ```
-
-## Credits
-Restoration data comes from the Internet Archive Wayback Machine. Flash
-playback uses the Ruffle project. Named in plain text, without their marks, and
-without implying endorsement.
-
-## License
-MIT. See [LICENSE](./LICENSE).
+src/core/     pure logic (rewriter, archive-url, capture-select, recovery)
+src/archive/  network boundary; calls only our own /api proxy
+src/dom/      DOM rewriting, reader extraction, Flash handling
+src/ui/       React components + the recovery pipeline
+api/          serverless proxy functions (cdx, snapshot) + shared helpers
+tests/        mirrors src/; fixtures under tests/fixtures/
+.kiro/        steering, spec, agent, and hook
+```
+See `.kiro/steering/structure.md` for the full map and the layering rules.
 
 ## Manual verification against the live archive
 
@@ -108,3 +180,11 @@ through them:
 - [ ] Each error state renders in the UI: no-contact (an un-archived URL),
       partial recovery, rate-limit countdown, and the outage message above.
 - [ ] An axe/Lighthouse accessibility sweep and a keyboard-only walk pass.
+
+## Credits
+Restoration data comes from the Internet Archive Wayback Machine. Flash playback
+uses the Ruffle project. Named in plain text, without their marks, and without
+implying endorsement.
+
+## License
+MIT. See [LICENSE](./LICENSE).

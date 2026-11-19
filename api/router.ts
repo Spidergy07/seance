@@ -37,5 +37,3 @@ export async function handleApiRequest(
   }
   return null;
 }
-
-export default handleApiRequest;
