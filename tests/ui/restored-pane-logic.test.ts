@@ -145,6 +145,41 @@ describe('buildRestoredSrcDoc', () => {
     // The style lives in the head when there is one.
     expect(out.indexOf('<style')).toBeLessThan(out.indexOf('</head>'));
   });
+
+  it('sets Ruffle base to the page archive prefix so relative loads resolve (R6.8)', () => {
+    const base = buildArchiveUrl('http://kids.msfc.nasa.gov/', '20051230162224', {
+      raw: true,
+    });
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><object data="x.swf"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC, pageArchiveBase: base },
+    );
+    expect(out).toContain('base:');
+    expect(out).toContain(base);
+    // The base rides in the Ruffle config, read before the loader runs.
+    expect(out.indexOf('base:')).toBeLessThan(out.indexOf(DEFAULT_RUFFLE_SRC));
+  });
+
+  it('gives a Flash page a resolvable stage height so a 90% stage does not collapse (R6.8)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><object data="x.swf" width="90%" height="90%"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC },
+    );
+    // A definite ancestor height lets the percentage stage resolve.
+    expect(out).toContain('html,body{height:100%}');
+    // The stage rule lives in the head when there is one.
+    expect(out.indexOf('html,body{height:100%}')).toBeLessThan(
+      out.indexOf('</head>'),
+    );
+  });
+
+  it('does not add the Flash stage height rule to a page with no Flash', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><p>hi</p></body></html>',
+    );
+    expect(out).not.toContain('html,body{height:100%}');
+    expect(out).not.toContain('base:');
+  });
 });
 
 describe('parseRestoredMessage (R3.8)', () => {

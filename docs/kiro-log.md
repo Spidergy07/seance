@@ -1260,3 +1260,30 @@ test first where testable; full suite + typecheck + lint green after each.
   Restored pane takes the full width.
 - A page with 1×1 tracking pixels: the certificate count matches the visible
   assets (the pixels are not counted and are hidden).
+
+## Task 50 — Make the NASA Kids Flash stage visible
+
+- Problem (browser re-test, Chrome vs live archive, Wayback MCP for lookups):
+  on `http://kids.msfc.nasa.gov/` the 30 Dec 2005 capture's two embeds are
+  `<object>/<embed>` with `width="90%" height="90%"`. In the `srcdoc` document
+  the body had no resolved height, so 90% collapsed to ~0 and the stage showed
+  as a thin strip with no Ruffle player, even though `/api/swf` served the
+  `.swf` bytes fine (verified by curl: FWS, 32,896 bytes).
+- Fix (ours to fix, per the brief):
+  - `buildRestoredSrcDoc` now injects `FLASH_STAGE_STYLE`
+    (`html,body{height:100%}` + a `min-height` on `object`/`embed`/the Ruffle
+    elements) only when the page has Flash, so a percentage-size stage has a
+    definite ancestor height to resolve against. Ordinary pages are untouched.
+  - The Ruffle config is built by `buildRuffleConfigScript(base?)` and carries
+    `base` = the page's raw archive prefix
+    (`buildArchiveUrl(pageUrl, ts, { raw:true })`, threaded via a new
+    `pageArchiveBase` option and `RestoredPane`'s `captureTimestamp` prop), so a
+    movie's relative loads resolve against the archive, not the opaque origin.
+    The base's target stays an archive URL, so confinement (R3.4) holds.
+- Kiro features used: spec-first (added R6.8, design §9.3), test-first
+  (restored-pane-logic tests for the base-in-config and the stage-height rule,
+  and their absence on a no-Flash page), the Wayback MCP server (`cdx_search`,
+  `check_capture`) to confirm the embed markup and that the `.swf` capture
+  exists (`20051230162231`, 200, `application/x-shockwave-flash`).
+- Verified: 312 tests pass (+3), typecheck and lint clean. That a real `.swf`
+  actually paints is browser-only; added to the demo re-check list.

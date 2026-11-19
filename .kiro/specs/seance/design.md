@@ -228,6 +228,25 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   answering recently. Last saved copy: <date>." and points the visitor at the
   capture picker to open an older version. `now` is injected so the function is
   pure and testable; the UI passes the real clock.
+- Redirect-stub death date (R2.7, task 51): the "most recent 200" rule can land
+  on a redirect stub — a page returning HTTP 200 whose only effect is to send
+  the browser elsewhere (a `<meta http-equiv="refresh">` or a body-level
+  `window.location`/`location.replace`). Such a stub can keep returning 200 for
+  years after the real site is gone (NASA Kids served a 714-byte JS redirect
+  stub from April 2006 to its last 200 in December 2011; the real Flash homepage,
+  CDX digest `HU24…`, was captured only until early 2006). So:
+  - `core/redirect-stub.classifyRedirectStub(html)` (pure, string/regex, no DOM)
+    reports whether a fetched page is a bare redirect stub and its target.
+  - `core/capture-select.lastRealCapture(captures, stubDigest)` returns the most
+    recent status-200 capture whose CDX `digest` differs from `stubDigest`
+    (i.e. the last capture with different, real content), or the newest 200 when
+    none differ. This needs the CDX `digest`, so `Capture` carries an optional
+    `digest` and `parseCdxRows` fills it (field index 5).
+  - `recover` fetches the newest-200 snapshot (the default selection), and when
+    it is a redirect stub and an earlier real capture exists, it shows and dates
+    that real capture instead. This costs at most one extra snapshot fetch and
+    only on the default path; an explicit picker choice is shown as-is. The
+    capture picker still lists every saved day, so the stub stays reachable.
 
 ## 7. DOM rewriting (dom/rewrite-document.ts)
 - Walk these attributes: `a[href]`, `link[href]`, `script[src]`, `img[src]`,
@@ -376,6 +395,26 @@ The restored frame injects a small Ruffle bootstrap that sets
 polyfilled Ruffle player reports an error (including a load failure on a tiny
 embed), it replaces the player with the plain voice.md "could not play" notice,
 so a 10px embed never shows a clipped red strip.
+
+### 9.3 Flash stage sizing and Ruffle base (task 50, R6.8)
+Old Flash pages size the stage in percentages (NASA Kids'
+`<object>/<embed>` are `width="90%" height="90%"`). A percentage height resolves
+to zero unless an ancestor has a definite height, so in the `srcdoc` document
+the stage collapsed to a thin strip and no player showed, even though the `.swf`
+bytes loaded through `/api/swf`. When the page has Flash, `buildRestoredSrcDoc`
+injects a stage style (`html,body{height:100%}` plus a `min-height` on
+`object`/`embed`/`ruffle-player`/`ruffle-object`/`ruffle-embed`) so a
+percentage-size stage has a definite height to resolve against. It is injected
+only for Flash pages, so ordinary pages' layout is untouched.
+
+The Ruffle config also carries a `base`: the page's raw archive prefix
+(`buildArchiveUrl(pageOriginalUrl, timestamp, { raw: true })`), passed as
+`pageArchiveBase`. A `.swf` that loads further movies by a relative path then
+resolves them against the archive rather than against the opaque `srcdoc`
+origin. The base's target stays an archive URL, so confinement (R3.4) holds;
+whether a given archive resource then returns CORS headers is outside our
+control, but the primary movie always loads through `/api/swf`. That a real
+`.swf` paints can only be confirmed in a browser (README checklist).
 
 ## 10. Reader view (dom/reader.ts)
 - Run readability on a clone of the parsed DOM (readability mutates its input).

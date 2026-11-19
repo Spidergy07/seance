@@ -5,6 +5,7 @@
 // live web (R3.8). See design.md §8.
 
 import { useEffect, useMemo } from 'react';
+import { buildArchiveUrl } from '../core/archive-url.js';
 import {
   DEFAULT_RUFFLE_SRC,
   RESTORED_SANDBOX,
@@ -24,6 +25,11 @@ export interface RestoredPaneProps {
   hasFlash?: boolean;
   /** Override the Ruffle loader URL (defaults to the official build). */
   ruffleScriptUrl?: string;
+  /**
+   * Timestamp of the capture being shown. With `pageOriginalUrl` it gives
+   * Ruffle a `base` so a movie's relative loads resolve to the archive (R6.8).
+   */
+  captureTimestamp?: string;
 }
 
 export function RestoredPane({
@@ -32,14 +38,26 @@ export function RestoredPane({
   onNavigate,
   hasFlash = false,
   ruffleScriptUrl = DEFAULT_RUFFLE_SRC,
+  captureTimestamp,
 }: RestoredPaneProps) {
   const srcDoc = useMemo(() => {
     const options: RestoredSrcDocOptions = {};
     if (hasFlash) {
       options.ruffleScriptUrl = ruffleScriptUrl;
+      if (captureTimestamp !== undefined) {
+        try {
+          options.pageArchiveBase = buildArchiveUrl(
+            pageOriginalUrl,
+            captureTimestamp,
+            { raw: true },
+          );
+        } catch {
+          // A malformed timestamp just means no base; Ruffle still loads.
+        }
+      }
     }
     return buildRestoredSrcDoc(html, options);
-  }, [html, hasFlash, ruffleScriptUrl]);
+  }, [html, hasFlash, ruffleScriptUrl, captureTimestamp, pageOriginalUrl]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {

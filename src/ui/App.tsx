@@ -208,6 +208,7 @@ export function App(props: AppProps) {
                   pageOriginalUrl={phase.view.pageOriginalUrl}
                   onNavigate={start}
                   hasFlash={phase.view.hasFlash}
+                  captureTimestamp={phase.view.selectedCapture.timestamp}
                 />
               </div>
             </ResultErrorBoundary>

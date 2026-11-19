@@ -49,6 +49,16 @@ that I do not have to understand the archive myself.
   one entry per calendar day by default, choosing a working (status-200) capture
   for that day when one exists, so the same date is not repeated. The control
   SHALL stay keyboard operable.
+- R2.7 WHERE the most recent working (status-200) capture is a redirect stub (a
+  page whose only effect is to send the browser elsewhere, via a
+  `<meta http-equiv="refresh">` or a body-level `window.location` assignment and
+  no real content), THE SYSTEM SHALL NOT treat that stub as the site's last
+  working state. It SHALL select, as both the default view and the death
+  certificate's "last working capture", the most recent status-200 capture
+  whose archived content differs from the stub (its CDX content digest differs),
+  so the date reflects the last capture of the real site rather than a parked or
+  "moved" placeholder. The capture picker still lists every saved day (R2.4), so
+  the stub remains reachable.
 
 ## R3 — Restore the page (link/asset rewriting)
 **User story:** As a visitor, I want the restored page's links and assets to
@@ -142,6 +152,10 @@ how much came back, so that I get the headline facts at a glance.
   capture as "no working capture found" rather than crashing. WHERE any result
   panel throws during render, THE SYSTEM SHALL contain the failure in an error
   boundary that shows a plain message with a retry control, not a blank page.
+- R5.6 WHERE a page referenced no separate assets (the recovery checked zero
+  images, stylesheets, scripts, or media), THE SYSTEM SHALL NOT show a recovery
+  percentage or meter, because a percentage of nothing is meaningless. It SHALL
+  instead say plainly that the page had no separate files to recover.
 
 ## R6 — Flash playback with Ruffle
 **User story:** As a visitor, I want archived Flash content to play, so that
@@ -170,6 +184,13 @@ interactive or animated pages are not dead.
   plain "not saved / could not play" notice rather than leaving a clipped error
   strip, and SHALL suppress Ruffle's own unsupported-content warning UI inside
   the restored frame.
+- R6.8 WHERE an archived Flash embed uses percentage or unset dimensions (e.g.
+  `width="90%" height="90%"`), THE SYSTEM SHALL give the restored document a
+  resolvable height so the Flash stage does not collapse to a thin strip with
+  no visible player. THE SYSTEM SHALL set Ruffle's base URL to the page's
+  archive prefix, so a movie's relative loads resolve against the archive rather
+  than against the opaque `srcdoc` origin. The base's target stays an archive
+  URL, so confinement (R3.4) still holds.
 
 ## R7 — Reader view
 **User story:** As a visitor on a phone, I want a clean readable version, so

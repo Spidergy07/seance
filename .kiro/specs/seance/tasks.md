@@ -461,3 +461,48 @@ pass after each.
     development vs vibe coding, steering docs, the MCP server, property-based
     testing, and `kiro-cli powers`. Plain English, no hype, no em dashes, claims
     verifiable from the repo. [docs]
+
+## Phase 11 — Demo re-test fix round (NASA Kids / death date / empty page)
+
+Found by a human re-testing the demo URLs (`docs/demo-urls.md`) in Chrome
+against the live Internet Archive after Phase 10, with the Wayback MCP server
+used for the archive lookups. Spec first, a failing test first where testable,
+one commit per task; tests and typecheck pass after each.
+
+50. [ ] **Make the NASA Kids Flash stage visible.** On `http://kids.msfc.nasa.gov/`
+    at the 30 December 2005 capture the two embeds are
+    `<object>/<embed>` with `width="90%" height="90%"`, so in a document whose
+    body has no resolved height the stage collapses to a thin strip and no
+    Ruffle player shows, even though the `.swf` bytes load through `/api/swf`
+    (verified: FWS, 32,896 bytes). Give the restored document a resolvable
+    height when it has Flash so a percentage-size stage no longer collapses, and
+    set Ruffle's `base` to the page's archive prefix so a movie's relative loads
+    resolve against the archive. [R6.8, R6.1, D8.1, D9]
+    - Tests (first): with Flash, the built srcdoc carries a stage-height rule
+      (`html,body{height:100%}`) and the Ruffle config carries
+      `base:"<archive prefix>"` before the loader; neither is present for a page
+      with no Flash. The SWF loading standalone is browser-only (checklist).
+
+51. [ ] **Death date excludes redirect stubs.** `http://kids.msfc.nasa.gov/`
+    served a 714-byte JavaScript redirect stub
+    (`window.location.href='http://www.nasa.gov/.../kidsclub/flash/index.html'`)
+    from 15 April 2006 until its last HTTP 200 on 20 December 2011; the real
+    Flash homepage (CDX digest `HU24…`) was captured until early 2006. The app's
+    "most recent 200" rule landed on the stub ("Died 20 December 2011"), and
+    `demo-urls.md` guessed 26 September 2007 (also the stub). Recognise a
+    redirect-stub capture and report the last real-content capture instead, for
+    both the default view and the death date. [R2.7, R2.2, R5.1, D5, D6]
+    - Tests (first): a pure `isRedirectStub(html)` detects meta-refresh and
+      body-level `window.location`/`location.replace` stubs and passes real
+      pages; `lastRealCapture(captures, stubDigest)` returns the most recent 200
+      with a different digest; `recover` shows the real capture and dates it when
+      the newest 200 is a stub. Update `demo-urls.md` to match.
+
+52. [ ] **No percentage for a page with no assets.** With zero referenced assets
+    the certificate showed "0 of 0 assets recovered" and "Recovery 100%" with a
+    full meter, which reads as a false success. When the recovery checked no
+    separate assets, drop the percentage and meter and say plainly the page had
+    no separate files to recover. [R5.6, voice.md, D6]
+    - Tests (first): the certificate with an empty assets list renders the plain
+      no-assets line and no `role="meter"`/percentage; a normal report still
+      shows the meter and percent.

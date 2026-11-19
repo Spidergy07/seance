@@ -113,12 +113,42 @@ export const NAVIGATION_GUARD_SCRIPT =
  * movies autoplay. Everything here is an app-controlled constant, not archived
  * content (R6.7).
  */
-export const RUFFLE_CONFIG_SCRIPT =
-  '<script>window.RufflePlayer=window.RufflePlayer||{};' +
-  'window.RufflePlayer.config=Object.assign({},window.RufflePlayer.config,{' +
-  'warnOnUnsupportedContent:false,autoplay:"on",unmuteOverlay:"hidden",' +
-  'contextMenu:false,splashScreen:false});' +
-  '</script>';
+export const RUFFLE_CONFIG_SCRIPT = buildRuffleConfigScript();
+
+/**
+ * Build the Ruffle config script. When `base` is given (the page's raw archive
+ * prefix), it is set as Ruffle's `base` so a movie's relative loads resolve
+ * against the archive rather than against the opaque `srcdoc` origin (R6.8).
+ * The base's target stays an archive URL, so confinement (R3.4) holds.
+ */
+export function buildRuffleConfigScript(base?: string): string {
+  const extra =
+    base !== undefined && base !== '' ? `,base:${JSON.stringify(base)}` : '';
+  return (
+    '<script>window.RufflePlayer=window.RufflePlayer||{};' +
+    'window.RufflePlayer.config=Object.assign({},window.RufflePlayer.config,{' +
+    'warnOnUnsupportedContent:false,autoplay:"on",unmuteOverlay:"hidden",' +
+    'contextMenu:false,splashScreen:false' +
+    extra +
+    '});' +
+    '</script>'
+  );
+}
+
+/**
+ * A stage style injected only into Flash pages (R6.8). Old Flash embeds size
+ * the stage in percentages (`width="90%" height="90%"`); a percentage height
+ * resolves to zero unless an ancestor has a definite height, so the stage
+ * collapsed to a thin strip with no visible player. Giving `html,body` a
+ * definite height lets the percentage resolve, and a `min-height` on the embed
+ * and the Ruffle player it becomes keeps a stage visible even inside a
+ * height-collapsing ancestor. Injected only for Flash pages, so an ordinary
+ * page's layout is untouched.
+ */
+export const FLASH_STAGE_STYLE =
+  '<style>html,body{height:100%}' +
+  'object,embed,ruffle-player,ruffle-object,ruffle-embed{min-height:240px}' +
+  '</style>';
 
 /**
  * A guard injected into the frame that degrades a failed Flash embed to the
@@ -195,6 +225,12 @@ export interface RestoredSrcDocOptions {
    * Left unset when the page has no playable Flash, so Ruffle is not loaded.
    */
   ruffleScriptUrl?: string;
+  /**
+   * The page's raw archive prefix (`buildArchiveUrl(pageUrl, ts, { raw })`),
+   * set as Ruffle's `base` so a movie's relative loads resolve against the
+   * archive (R6.8). Only used when `ruffleScriptUrl` is also set.
+   */
+  pageArchiveBase?: string;
 }
 
 /**
@@ -262,11 +298,15 @@ export function buildRestoredSrcDoc(
   const hasRuffle =
     options.ruffleScriptUrl !== undefined && options.ruffleScriptUrl !== '';
 
-  // Head content: the notice style, then (when the page has Flash) the Ruffle
-  // config before its loader so the polyfill reads the config on start (R6.7).
+  // Head content: the notice style, then (when the page has Flash) the stage
+  // style, the Ruffle config (with the page's archive base), and its loader —
+  // config before loader so the polyfill reads it on start (R6.7, R6.8).
   let headTag = NOTICE_STYLE;
   if (hasRuffle) {
-    headTag += `${RUFFLE_CONFIG_SCRIPT}<script src="${options.ruffleScriptUrl as string}"></script>`;
+    headTag +=
+      FLASH_STAGE_STYLE +
+      buildRuffleConfigScript(options.pageArchiveBase) +
+      `<script src="${options.ruffleScriptUrl as string}"></script>`;
   }
   const headed = injectIntoHead(out, headTag);
   // When there is no head or body to carry it, fold the head content into the
