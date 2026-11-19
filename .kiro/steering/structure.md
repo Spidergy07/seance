@@ -39,6 +39,7 @@ seance/
       types.ts           # shared domain types (Capture, AssetResult, etc.)
 
     archive/             # network boundary: talks to our CDX proxy only
+      result.ts          # shared typed ClientResult/ClientError + mappers
       cdx-client.ts      # fetch CDX rows via the serverless function
       snapshot-client.ts # fetch archived HTML/assets
 

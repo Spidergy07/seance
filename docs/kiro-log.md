@@ -206,3 +206,30 @@ was built, which Kiro features were used, and any problem hit.
   §11 timeout/retry), `requirements.md` R9.1/R9.2, and `structure.md` (api/ has
   no DOM/React; core is the single source of truth for the archive prefix).
 - Problems hit: none. 106 tests pass, typecheck clean.
+
+## Task 12 — Archive clients
+
+- Implemented the network boundary:
+  - `src/archive/result.ts`: `ClientResult<T>` (ok/err), `ClientError` with a
+    `kind` the UI maps to a plain message, and `errorFromResponse` /
+    `errorFromThrow` mappers (429 → rate-limited, 504 → timeout, 502/503 →
+    outage, thrown fetch → network).
+  - `src/archive/cdx-client.ts`: `cdxEndpoint` + `fetchCaptures`. Calls
+    `/api/cdx` on our own origin, parses `{ rows }` with the pure
+    `parseCdxRows` from core, returns `Capture[]`.
+  - `src/archive/snapshot-client.ts`: `snapshotEndpoint` + `fetchSnapshot`.
+    Calls `/api/snapshot`, returns the body text and content type.
+- Both clients take an injectable `fetch` and an optional `baseUrl`. They build
+  relative `/api/...` paths, so they can only reach our own proxy. Tests assert
+  the called URL contains `/api/...` and never `web.archive.org`.
+- Tests: `tests/archive/cdx-client.test.ts` (7 cases: endpoint shape, parse
+  captures, empty rows, rate-limited/outage/network/parse-error) and
+  `tests/archive/snapshot-client.test.ts` (4 cases: endpoint shape, body+type,
+  timeout, network). No test performs real network I/O.
+- Spec change: added `src/archive/result.ts` to `structure.md`; the original
+  map listed only the two client files, but the shared result/error types and
+  mappers belong in one place both clients import.
+- Kiro features used: the `seance` spec (`design.md` §1/§3, `requirements.md`
+  R9.1/R9.2), `structure.md` (archive/ is the only network layer and may import
+  the pure core), and `tech.md` (typed results, offline tests).
+- Problems hit: none. 117 tests pass, typecheck clean.

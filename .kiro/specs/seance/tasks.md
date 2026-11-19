@@ -90,7 +90,7 @@ Legend: [R#] requirement id, [D#] design section.
     where CORS or header control requires it. [D3 step 4, D11]
     - Tests: with mocked fetch, correct upstream URL and timeout behaviour.
 
-12. **Archive clients.** Implement `src/archive/cdx-client.ts` and
+12. [x] **Archive clients.** Implement `src/archive/cdx-client.ts` and
     `src/archive/snapshot-client.ts` that call only our own `api/` endpoints.
     [R9.1, D1, D3]
     - Tests: clients call our endpoints (mocked), parse responses, surface
