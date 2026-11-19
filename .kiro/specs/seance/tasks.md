@@ -25,7 +25,7 @@ Legend: [R#] requirement id, [D#] design section.
 
 ## Phase 1 — Core, pure logic (Days 2–4)
 
-3. **Domain types.** Implement `src/core/types.ts` per [D2].
+3. [x] **Domain types.** Implement `src/core/types.ts` per [D2].
    - Done: types compile; no runtime code yet.
 
 4. **Archive URL module.** Implement `src/core/archive-url.ts`:

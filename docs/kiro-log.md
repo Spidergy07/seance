@@ -40,3 +40,12 @@ was built, which Kiro features were used, and any problem hit.
 - Problems hit: none. esbuild/fsevents postinstall warnings from the
   allowScripts policy are harmless (platform binaries already present).
 - Verified: 3 tests pass, typecheck and lint clean.
+
+## Task 3 — Domain types
+
+- Implemented `src/core/types.ts`: `OriginalUrl`, `ArchiveUrl`, `Capture`,
+  `AssetKind`, `AssetStatus`, `AssetResult`, `RecoveryReport`, matching
+  design.md section 2. Type-only module, no runtime code.
+- Kiro features used: `design.md` section 2 defined the shapes verbatim;
+  `structure.md` fixed the location under `src/core/`.
+- Problems hit: none. Typecheck and lint clean.
