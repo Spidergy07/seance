@@ -8,6 +8,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { UrlInput } from './UrlInput.js';
+import { RestoredPane } from './RestoredPane.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import type { AppPhase, RecoveryOutcome } from './types.js';
 
@@ -119,13 +120,14 @@ export function App(props: AppProps) {
         )}
 
         {phase.status === 'done' && (
-          // Panes and the death certificate are slotted in by tasks 18–20.
-          <section className="placeholder" aria-label="Recovery result">
-            <p>
-              Recovered {phase.view.report.recoveredCount} of{' '}
-              {phase.view.report.totalCount} assets (
-              {phase.view.report.recoveryPercent}%).
-            </p>
+          // The reader pane (task 19) and death certificate (task 20) join the
+          // restored pane in the two-pane layout here.
+          <section className="result" aria-label="Recovery result">
+            <RestoredPane
+              html={phase.view.restoredHtml}
+              pageOriginalUrl={phase.view.pageOriginalUrl}
+              onNavigate={start}
+            />
           </section>
         )}
       </main>

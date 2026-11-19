@@ -338,6 +338,48 @@ a {
   }
 }
 
+/* --- Panes ---------------------------------------------------------------- */
+.result {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.pane {
+  background: var(--bg-raised);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pane__head {
+  padding: var(--s-4);
+  border-bottom: 1px solid var(--panel-edge);
+}
+.pane__title {
+  font-size: 1.25rem;
+}
+.pane__literal {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--ink-dim);
+}
+.pane__note {
+  margin: var(--s-2) 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+}
+
+.pane__frame {
+  width: 100%;
+  min-height: 60vh;
+  border: 0;
+  background: #fff; /* archived pages assume a light canvas */
+}
+
 /* --- Placeholder (temporary; replaced by panes/banner in later tasks) ---- */
 .placeholder {
   max-width: 48rem;

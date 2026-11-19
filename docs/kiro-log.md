@@ -400,3 +400,36 @@ was built, which Kiro features were used, and any problem hit.
   instead of the props type). Fixed by giving `App` a single non-optional
   `AppProps` parameter; `<App />` still renders since every prop is optional.
 - Verified: 154 tests pass (14 new), typecheck and lint clean.
+
+## Task 18 — Restored pane (sandboxed iframe)
+
+- Implemented `src/ui/restored-pane-logic.ts` (pure):
+  - `RESTORED_SANDBOX = 'allow-scripts'` — scripts run (for Ruffle and the
+    interceptor) but the frame stays in an opaque origin with no
+    `allow-same-origin`, no top navigation, and no form submission, so archived
+    content cannot reach the Seance app or the archive session (R3.7, R9.2,
+    design.md §8).
+  - `buildRestoredSrcDoc(html)` injects a dependency-free click interceptor
+    before `</body>`; it stops in-frame navigation and posts the clicked link's
+    archive href to the shell.
+  - `parseRestoredMessage(data)` validates the message shape and only returns a
+    navigation intent when the href is a real archive URL (via
+    `parseArchiveUrl`), so a stray or hostile message cannot steer the shell to
+    an arbitrary live address (R3.8).
+- Implemented `src/ui/RestoredPane.tsx`: a `<section>` labelled "Restored — the
+  saved page" (voice.md themed + literal) with a sandboxed `<iframe srcDoc>`,
+  an accessible title, `referrerPolicy="no-referrer"`, and a window `message`
+  listener that calls `onNavigate` with the recovered original URL. Wired into
+  `App`'s done phase so following a link re-runs recovery.
+- Tests: `tests/ui/restored-pane-logic.test.ts` (sandbox policy tokens;
+  interceptor injection with/without body; message parsing incl. rejecting
+  non-archive hrefs) and `tests/ui/restored-pane.test.ts` (rendered iframe
+  carries the sandbox attribute and srcdoc, no `allow-same-origin`, accessible
+  title, pane label).
+- Kiro features used: the `seance` spec (`requirements.md` R3.7/R3.8/R9.2,
+  `design.md` §8), voice.md (pane labels), `structure.md` (ui/ delegates the
+  URL decision to core via `parseArchiveUrl`).
+- Problem hit: `react-dom/server` keeps camelCase attribute names (`srcDoc`,
+  `referrerPolicy`) in static markup rather than the DOM's lowercase form, so
+  the attribute-name assertions now compare case-insensitively.
+- Verified: 164 tests pass (10 new), typecheck and lint clean.

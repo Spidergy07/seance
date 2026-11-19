@@ -133,7 +133,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: validation accepts/rejects the right inputs; scheme guess surfaces
       the interpreted URL before searching.
 
-18. **Restored pane (sandboxed iframe).** `src/ui/RestoredPane.tsx`: render
+18. [x] **Restored pane (sandboxed iframe).** `src/ui/RestoredPane.tsx`: render
     rewritten HTML in a sandboxed iframe; intercept internal link activations
     and re-run recovery via postMessage to the shell. [R3.7, R3.8, R9.2, D8]
     - Tests: iframe carries the sandbox attribute; internal-link message
