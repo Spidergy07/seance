@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_RUFFLE_SRC,
   RESTORED_SANDBOX,
+  RESTORED_IMAGE_PLACEHOLDER_TEXT,
   buildRestoredSrcDoc,
   parseRestoredMessage,
 } from '../../src/ui/restored-pane-logic.js';
@@ -80,6 +81,26 @@ describe('buildRestoredSrcDoc', () => {
     );
     expect(out).not.toContain('RufflePlayer.config');
     expect(out).not.toContain(FLASH_ERROR_MESSAGE);
+  });
+
+  it('injects an image guard that hides tracking pixels and replaces broken images (R3.13)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><img src="x"></body></html>',
+    );
+    // Hides 1x1 / 0x0 tracking pixels: it inspects the natural size.
+    expect(out).toContain('naturalWidth');
+    // Replaces a failed image with the plain placeholder (not the broken icon).
+    expect(out).toContain('addEventListener("error"');
+    expect(out).toContain('data-seance-img');
+    expect(out).toContain(RESTORED_IMAGE_PLACEHOLDER_TEXT);
+  });
+
+  it('injects the image guard even for a page with no Flash', () => {
+    const out = buildRestoredSrcDoc('<p>fragment</p>');
+    expect(out.startsWith('<p>fragment</p>')).toBe(true);
+    expect(out).toContain(RESTORED_IMAGE_PLACEHOLDER_TEXT);
+    // The guard carries no Ruffle anything.
+    expect(out).not.toContain('ruffle');
   });
 });
 

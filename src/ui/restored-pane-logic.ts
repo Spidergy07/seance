@@ -31,6 +31,50 @@ export const RESTORED_SANDBOX = 'allow-scripts';
 export const DEFAULT_RUFFLE_SRC = 'https://unpkg.com/@ruffle-rs/ruffle';
 
 /**
+ * The plain notice shown in the restored view in place of an image that failed
+ * to load from the archive, instead of the browser's broken-image icon (R3.13,
+ * voice.md: plain, names what happened, no blame). Single-sourced so the
+ * injected guard and any test read the same text.
+ */
+export const RESTORED_IMAGE_PLACEHOLDER_TEXT =
+  'This image was not recovered from the archive.';
+
+/**
+ * An image guard injected into the restored document (R3.13). It runs in the
+ * sandboxed frame and, via capture-phase listeners plus an initial scan:
+ *  - hides an image that loads at 1×1 or 0×0 (a tracking pixel, no content), so
+ *    old pages are not littered with invisible one-pixel images; and
+ *  - replaces an image that fails to load with a small placeholder
+ *    (`data-seance-img`) carrying the plain text above, rather than leaving the
+ *    browser's broken-image icon.
+ * It touches only `<img>` elements and marks each once, so it is idempotent.
+ */
+export const IMAGE_GUARD_SCRIPT =
+  '<script>(function(){' +
+  'var MSG=' +
+  JSON.stringify(RESTORED_IMAGE_PLACEHOLDER_TEXT) +
+  ';' +
+  'function placeholder(){var s=document.createElement("span");' +
+  's.setAttribute("data-seance-img","missing");s.setAttribute("role","note");' +
+  's.textContent=MSG;return s;}' +
+  'function tracking(img){return img.naturalWidth<=1&&img.naturalHeight<=1;}' +
+  'function onLoad(img){if(img.getAttribute("data-seance-img"))return;' +
+  'if(tracking(img)){img.setAttribute("data-seance-img","tracking");' +
+  'img.style.display="none";}}' +
+  'function onError(img){if(img.getAttribute("data-seance-img"))return;' +
+  'var p=placeholder();if(img.parentNode){img.parentNode.replaceChild(p,img);}}' +
+  'document.addEventListener("load",function(e){' +
+  'var t=e.target;if(t&&t.tagName==="IMG")onLoad(t);},true);' +
+  'document.addEventListener("error",function(e){' +
+  'var t=e.target;if(t&&t.tagName==="IMG")onError(t);},true);' +
+  'function scan(){var imgs=document.getElementsByTagName("img");' +
+  'for(var i=0;i<imgs.length;i++){var im=imgs[i];' +
+  'if(im.complete&&im.naturalWidth>0)onLoad(im);}}' +
+  'if(document.readyState!=="loading"){scan();}' +
+  'else{document.addEventListener("DOMContentLoaded",scan);}' +
+  '})();</script>';
+
+/**
  * A tiny, dependency-free script injected into the archived document. It
  * intercepts clicks on links, stops the in-frame navigation, and posts the
  * link's (already archive-rewritten) href to the shell so it can re-run the
@@ -150,6 +194,7 @@ export function buildRestoredSrcDoc(
   }
   const injected =
     (hasRuffle ? RUFFLE_ERROR_GUARD_SCRIPT : '') +
+    IMAGE_GUARD_SCRIPT +
     NAVIGATION_GUARD_SCRIPT +
     INTERCEPTOR_SCRIPT;
   const body = /<\/body>/i;

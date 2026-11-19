@@ -89,4 +89,24 @@ describe('resolveAssetStatuses', () => {
     expect(counts.missing).toBe(1);
     expect(counts.unknown).toBe(1);
   });
+
+  it('reports a redirect-only (3xx) capture as not recovered (R4.6)', async () => {
+    const assets: CollectedAsset[] = [
+      { originalUrl: 'http://oldsite.example/pixel.gif', kind: 'image' },
+      { originalUrl: 'http://oldsite.example/moved.css', kind: 'stylesheet' },
+    ];
+    const lookup = lookupFrom(
+      new Map<string, Capture | null>([
+        // The archive only ever answered these with a redirect.
+        ['http://oldsite.example/pixel.gif', capture('http://oldsite.example/pixel.gif', 302)],
+        ['http://oldsite.example/moved.css', capture('http://oldsite.example/moved.css', 301)],
+      ]),
+    );
+
+    const results = await resolveAssetStatuses(assets, lookup);
+    for (const result of results) {
+      expect(result.status).toBe('missing');
+      expect(result.archiveUrl).toBeUndefined();
+    }
+  });
 });
