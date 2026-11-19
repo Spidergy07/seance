@@ -564,3 +564,30 @@ was built, which Kiro features were used, and any problem hit.
   args types its `mock.calls[0]` as an empty tuple, so indexing failed to
   typecheck; captured the called URL in a local variable instead.
 - Verified: 197 tests pass (11 new), typecheck, lint, and build clean.
+
+## Task 23 — Theme + accessibility pass
+
+- `theme.css` was already applied in the Phase 4 tasks; this pass verified and
+  locked its accessibility properties rather than restyling. Reviewed the
+  stylesheet and confirmed: colour always rides alongside text (recovery meter
+  has a percent and `aria-valuetext`; the asset tally labels each dot in words;
+  banner tone never stands alone), a `prefers-reduced-motion` block disables the
+  loading pulse and all transitions (N4), `:focus-visible` gives a candle-amber
+  outline, and the skip link is keyboard reachable. No third-party logos or
+  images anywhere (R9.3).
+- Added `tests/ui/accessibility.test.ts` (8 cases) as the automated structural
+  a11y check: skip link targets `#main`, the URL field has a real `<label>` and
+  the submit an `aria-label`, each themed label is paired with its literal
+  meaning (Restored / Reader / Death certificate), the recovery meter carries
+  `role="meter"` + `aria-valuenow`/`aria-valuetext`, status is stated in words
+  next to the coloured dots, error banners are `role="alert"`/assertive while
+  quieter states are `role="status"`/polite, and the main view uses no `<img>`.
+- Kiro features used: the `seance` spec (`requirements.md` R9.3, N4),
+  `voice.md` (themed+literal labels, colour-carries-information rule),
+  `structure.md` (pure banner/label logic kept testable). The spec needed no
+  change.
+- Problem hit: no DOM-based axe run is possible under the Node + react-dom/server
+  test setup, so the automated check asserts ARIA/landmark structure directly; a
+  full browser axe sweep and a manual keyboard walk are recorded as browser-only
+  checks in the README (task 25).
+- Verified: 205 tests pass (8 new), typecheck, lint, and build clean.

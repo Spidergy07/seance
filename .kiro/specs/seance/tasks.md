@@ -166,7 +166,7 @@ Legend: [R#] requirement id, [D#] design section.
     - Tests: an integration test runs the full flow offline and asserts the
       report and rendered panes.
 
-23. **Theme + accessibility pass.** Apply `theme.css`; verify colour is never
+23. [x] **Theme + accessibility pass.** Apply `theme.css`; verify colour is never
     the only signal, themed labels have literal accessible names, keyboard and
     reduced-motion behaviour. [voice.md, N4, R9.3]
     - Checks: automated a11y check on the main view; manual keyboard walk.
