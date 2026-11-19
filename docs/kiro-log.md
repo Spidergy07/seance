@@ -523,3 +523,44 @@ was built, which Kiro features were used, and any problem hit.
   R6.3, R6.5, R2.3, `design.md` §11), voice.md (every example error string),
   `structure.md` (banner copy kept pure and separate from the component).
 - Problem hit: none. 186 tests pass (9 new), typecheck, lint, and build clean.
+
+## Task 22 — End-to-end wiring with fixtures
+
+- Added `tests/integration/recover-flow.test.ts`: it drives the whole pipeline
+  offline from a new fixture (`tests/fixtures/html/dead-home.html`) through a
+  single `fetch` mock that answers `/api/cdx` and `/api/snapshot`. It covers
+  input (`interpretUrlInput`/`resolvedUrl`) → clients → capture selection →
+  document rewrite → asset status → recovery report → reader → Flash, then
+  renders `DeathCertificate`, `ReaderPane`, and `RestoredPane` from the view and
+  asserts the visible result (3 of 5 assets recovered, 60%, the missing image
+  named, archive-only URLs, a sandboxed iframe that loads Ruffle).
+- Finished the deferred runtime wiring:
+  - **Ruffle in the restored view.** The restored page renders in a sandboxed
+    iframe, so Ruffle must run *inside* that frame. `src/dom/flash.ts` gained
+    `applyFlashNotices`, which the pipeline runs before serialising: it replaces
+    confirmed-missing `<object>/<embed>` `.swf` with the plain "not saved"
+    notice and leaves recovered/undetermined embeds for Ruffle. `recover.ts`
+    computes `view.hasFlash`; `RestoredPane` injects the Ruffle loader into the
+    iframe `srcdoc` only when there is a playable embed
+    (`buildRestoredSrcDoc(html, { ruffleScriptUrl })`). Ruffle's source defaults
+    to the official build and is overridable for self-hosting.
+  - **Local end-to-end on localhost.** Added `api/router.ts` (one host-agnostic
+    entry point dispatching `/api/cdx` and `/api/snapshot`) and a dev-only Vite
+    middleware in `vite.config.ts` that serves the proxies alongside the app via
+    `server.ssrLoadModule`, so `npm run dev` works end to end without a second
+    process. The router is unit-tested offline (`tests/api/router.test.ts`); the
+    Node↔Web adapter in the plugin is dev-only and exercised by hand.
+- New unit tests: `applyFlashNotices` status handling (`tests/dom/flash.test.ts`)
+  and Ruffle injection in `tests/ui/restored-pane-logic.test.ts`.
+- Spec changes: `design.md` §8 now matches the opaque-origin `allow-scripts`
+  sandbox the code uses, and §9 is rewritten to describe Ruffle running inside
+  the iframe (pipeline replaces missing embeds; the pane loads Ruffle). Added
+  `api/router.ts` to `structure.md`.
+- Kiro features used: the `seance` spec (`design.md` §3/§8/§9, `requirements.md`
+  R3.7/R6.1–R6.3/R9.1/R9.2), steering (`structure.md` layout, `tech.md`
+  serverless-function model, `voice.md` Flash copy), and the recorded-fixture
+  offline test story from `tech.md`.
+- Problem hit: under `noUncheckedIndexedAccess` a `vi.fn()` with no declared
+  args types its `mock.calls[0]` as an empty tuple, so indexing failed to
+  typecheck; captured the called URL in a local variable instead.
+- Verified: 197 tests pass (11 new), typecheck, lint, and build clean.

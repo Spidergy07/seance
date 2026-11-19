@@ -31,6 +31,11 @@ export interface RecoveryView {
   restoredHtml: string;
   /** The extracted reader view, or the no-article result. */
   reader: ReaderResult;
+  /**
+   * True when the restored page has at least one playable (recovered or
+   * undetermined) `.swf` embed, so the Restored pane loads Ruffle to play it.
+   */
+  hasFlash: boolean;
 }
 
 /** The outcome of a recovery attempt: a view, or a typed stop. */

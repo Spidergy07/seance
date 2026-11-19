@@ -174,6 +174,7 @@ export function App(props: AppProps) {
                 html={phase.view.restoredHtml}
                 pageOriginalUrl={phase.view.pageOriginalUrl}
                 onNavigate={start}
+                hasFlash={phase.view.hasFlash}
               />
             </div>
           </section>

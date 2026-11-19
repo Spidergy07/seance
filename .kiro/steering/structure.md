@@ -63,6 +63,7 @@ seance/
 
   api/                   # serverless function(s); the CDX proxy
     http.ts              # shared timeout + retry/backoff helper for the proxies
+    router.ts            # dispatch /api/cdx + /api/snapshot to one entry point
     cdx.ts               # proxy CDX queries to the Wayback Machine
     snapshot.ts          # proxy archived resource fetches (if needed)
 

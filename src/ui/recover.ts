@@ -16,8 +16,10 @@ import { selectCapture } from '../core/capture-select.js';
 import { buildRecoveryReport } from '../core/recovery.js';
 import { rewriteDocument } from '../dom/rewrite-document.js';
 import { resolveAssetStatuses } from '../dom/asset-status.js';
+import { applyFlashNotices } from '../dom/flash.js';
 import { extractReader } from '../dom/reader.js';
 import type { ReaderDeps } from '../dom/reader.js';
+import type { AssetStatus } from '../core/types.js';
 import type { RewriteContext } from '../core/url-rewriter.js';
 import type { RecoveryErrorKind, RecoveryOutcome } from './types.js';
 
@@ -107,6 +109,22 @@ export async function recover(
     assets: assetResults,
   });
 
+  // Apply Flash outcomes to the restored DOM before serialising: confirmed
+  // -missing `.swf` embeds become a plain "not saved" notice; recovered and
+  // undetermined ones stay in place for Ruffle to attempt inside the iframe
+  // (design.md §9, R6.1–R6.3). The player itself is mounted by Ruffle in the
+  // sandbox, not here.
+  const flashStatusByUrl = new Map<string, AssetStatus>();
+  for (const asset of assetResults) {
+    if (asset.kind === 'flash') {
+      flashStatusByUrl.set(asset.originalUrl, asset.status);
+    }
+  }
+  const flash = applyFlashNotices(
+    restoredDoc,
+    (url) => flashStatusByUrl.get(url) ?? 'unknown',
+  );
+
   const readerDeps: ReaderDeps = { parseHtml: deps.parseHtml };
   if (deps.createReadability !== undefined) {
     readerDeps.createReadability = deps.createReadability;
@@ -121,6 +139,7 @@ export async function recover(
       report,
       restoredHtml: deps.serialize(restoredDoc),
       reader,
+      hasFlash: flash.playable > 0,
     },
   };
 }

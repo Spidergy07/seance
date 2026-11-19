@@ -5,6 +5,7 @@ import {
   FLASH_ERROR_MESSAGE,
   FLASH_MISSING_MESSAGE,
   FLASH_PLAYING_MESSAGE,
+  applyFlashNotices,
   detectFlashRefs,
   flashStatus,
   mountFlash,
@@ -69,6 +70,37 @@ describe('flashStatus', () => {
     expect(flashStatus(capture(200))).toBe('recovered');
     expect(flashStatus(capture(404))).toBe('missing');
     expect(flashStatus(null)).toBe('missing');
+  });
+});
+
+describe('applyFlashNotices', () => {
+  it('replaces missing embeds and leaves recovered/unknown for Ruffle', () => {
+    const doc = parse(
+      '<html><body>' +
+        '<object data="http://s/ok.swf"></object>' +
+        '<embed src="http://s/gone.swf">' +
+        '<embed src="http://s/maybe.swf">' +
+        '<a href="http://s/link.swf">play</a>' +
+        '</body></html>',
+    );
+    const statusOf = (url: string) => {
+      if (url.endsWith('/ok.swf')) return 'recovered' as const;
+      if (url.endsWith('/gone.swf')) return 'missing' as const;
+      return 'unknown' as const;
+    };
+
+    const result = applyFlashNotices(doc, statusOf);
+
+    // ok.swf (recovered) and maybe.swf (unknown) stay; gone.swf (missing) goes.
+    expect(result).toEqual({ playable: 2, missing: 1 });
+    expect(doc.querySelector('object[data="http://s/ok.swf"]')).not.toBeNull();
+    expect(doc.querySelector('embed[src="http://s/maybe.swf"]')).not.toBeNull();
+    expect(doc.querySelector('embed[src="http://s/gone.swf"]')).toBeNull();
+    expect(doc.querySelector('[data-seance-flash="missing"]')?.textContent).toBe(
+      FLASH_MISSING_MESSAGE,
+    );
+    // The bare anchor link is navigation, left untouched here.
+    expect(doc.querySelector('a[href="http://s/link.swf"]')).not.toBeNull();
   });
 });
 

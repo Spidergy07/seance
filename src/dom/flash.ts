@@ -9,7 +9,7 @@
 // loads Ruffle from its official distribution.
 
 import { parseArchiveUrl } from '../core/archive-url.js';
-import type { Capture } from '../core/types.js';
+import type { AssetStatus, Capture } from '../core/types.js';
 
 // Plain-language messages (voice.md). Each themed idea has a literal meaning.
 export const FLASH_PLAYING_MESSAGE =
@@ -123,6 +123,50 @@ function noticeElement(
 
 function replaceElement(oldEl: Element, newEl: Element): void {
   oldEl.parentNode?.replaceChild(newEl, oldEl);
+}
+
+/** How the restored document's Flash embeds were handled before serialising. */
+export interface FlashAccounting {
+  /** Embeds left in place for Ruffle to attempt (recovered or undetermined). */
+  playable: number;
+  /** Embeds replaced with the plain "not saved" notice (confirmed missing). */
+  missing: number;
+}
+
+/**
+ * Apply Flash outcomes to the restored document before it is serialised into
+ * the sandboxed iframe. `<object>`/`<embed>` `.swf` references with a
+ * confirmed-missing capture are replaced with the plain "not saved" notice
+ * (R6.3). Recovered and undetermined references are left in place so Ruffle,
+ * loaded inside the iframe, can attempt to play the archived `.swf` (R6.1,
+ * R6.2). Bare `<a>` links to `.swf` are navigation, not embeds, so they are
+ * left for the restored pane's click interceptor and not touched here.
+ *
+ * This runs in the recovery pipeline (no Ruffle present), so it never loads
+ * WebAssembly; the actual player is mounted by Ruffle inside the iframe.
+ */
+export function applyFlashNotices(
+  doc: Document,
+  statusOf: (originalUrl: string) => AssetStatus,
+): FlashAccounting {
+  let playable = 0;
+  let missing = 0;
+  for (const ref of detectFlashRefs(doc)) {
+    const tag = ref.element.tagName.toLowerCase();
+    if (tag !== 'object' && tag !== 'embed') {
+      continue; // anchors are navigation, handled by the click interceptor
+    }
+    if (statusOf(ref.originalUrl) === 'missing') {
+      replaceElement(
+        ref.element,
+        noticeElement(doc, 'missing', FLASH_MISSING_MESSAGE),
+      );
+      missing += 1;
+    } else {
+      playable += 1;
+    }
+  }
+  return { playable, missing };
 }
 
 /**

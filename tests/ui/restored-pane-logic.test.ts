@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DEFAULT_RUFFLE_SRC,
   RESTORED_SANDBOX,
   buildRestoredSrcDoc,
   parseRestoredMessage,
@@ -29,6 +30,24 @@ describe('buildRestoredSrcDoc', () => {
     const out = buildRestoredSrcDoc('<p>fragment</p>');
     expect(out.startsWith('<p>fragment</p>')).toBe(true);
     expect(out).toContain('postMessage');
+  });
+
+  it('does not load Ruffle unless a script URL is given', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body></body></html>',
+    );
+    expect(out).not.toContain('ruffle');
+  });
+
+  it('injects the Ruffle loader into the head when a URL is given (R6.1)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head><title>t</title></head><body><object data="x"></object></body></html>',
+      { ruffleScriptUrl: DEFAULT_RUFFLE_SRC },
+    );
+    expect(out).toContain(`<script src="${DEFAULT_RUFFLE_SRC}"></script>`);
+    // Ruffle loads before the body it polyfills, and before the interceptor.
+    expect(out.indexOf(DEFAULT_RUFFLE_SRC)).toBeLessThan(out.indexOf('</head>'));
+    expect(out).toContain('seance-restored');
   });
 });
 

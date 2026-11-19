@@ -6,9 +6,11 @@
 
 import { useEffect, useMemo } from 'react';
 import {
+  DEFAULT_RUFFLE_SRC,
   RESTORED_SANDBOX,
   buildRestoredSrcDoc,
   parseRestoredMessage,
+  type RestoredSrcDocOptions,
 } from './restored-pane-logic.js';
 
 export interface RestoredPaneProps {
@@ -18,10 +20,26 @@ export interface RestoredPaneProps {
   pageOriginalUrl: string;
   /** Called with the original URL of an internal link the visitor follows. */
   onNavigate: (originalUrl: string) => void;
+  /** When true, load Ruffle so recovered `.swf` embeds play (R6.1, R6.2). */
+  hasFlash?: boolean;
+  /** Override the Ruffle loader URL (defaults to the official build). */
+  ruffleScriptUrl?: string;
 }
 
-export function RestoredPane({ html, pageOriginalUrl, onNavigate }: RestoredPaneProps) {
-  const srcDoc = useMemo(() => buildRestoredSrcDoc(html), [html]);
+export function RestoredPane({
+  html,
+  pageOriginalUrl,
+  onNavigate,
+  hasFlash = false,
+  ruffleScriptUrl = DEFAULT_RUFFLE_SRC,
+}: RestoredPaneProps) {
+  const srcDoc = useMemo(() => {
+    const options: RestoredSrcDocOptions = {};
+    if (hasFlash) {
+      options.ruffleScriptUrl = ruffleScriptUrl;
+    }
+    return buildRestoredSrcDoc(html, options);
+  }, [html, hasFlash, ruffleScriptUrl]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {

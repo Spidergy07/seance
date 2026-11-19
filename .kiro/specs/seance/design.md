@@ -195,20 +195,38 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
   recovery (R3.8).
 
 ## 8. Restored view sandboxing (ui/RestoredPane.tsx)
-- The rewritten HTML is rendered in an `<iframe sandbox>` with a restrictive
-  policy: allow same-origin document rendering and scripts only as needed for
-  Ruffle, deny top-level navigation and form submission to arbitrary origins.
+- The rewritten HTML is rendered in an `<iframe sandbox="allow-scripts">`. The
+  frame stays in an opaque origin (no `allow-same-origin`), so scripts can run
+  (for Ruffle and the click interceptor) but archived content cannot read the
+  Seance app, its cookies, or the user's archive session. Top-level navigation
+  and form submission are denied by leaving their tokens out.
 - Archived content is untrusted input (R9.2). The sandbox is the trust
   boundary. Links inside post messages to the shell to trigger re-recovery.
 
 ## 9. Flash via Ruffle (dom/flash.ts)
 - Detect `<object>/<embed>` referencing `.swf` and bare `.swf` links.
-- For each, check capture status. If recovered, mount a Ruffle player against
-  the archived raw `.swf` URL. If missing, render the plain "not saved" notice
-  (R6.3).
-- Ruffle is loaded once from its official distribution and reused. A load or
-  init failure shows a plain error and does not break the rest of the page
-  (R6.5).
+- For each, check capture status against the recovery report.
+- Because the restored page renders inside the sandboxed iframe (§8), Ruffle
+  runs *inside that frame*, not in the app's document. The pipeline therefore
+  splits the work:
+  - `applyFlashNotices` (in `src/ui/recover.ts`, before serialising the
+    document) replaces every confirmed-missing `<object>/<embed>` `.swf` with
+    the plain "not saved" notice (R6.3). Recovered and undetermined embeds are
+    left in place, their `.swf` URL already pointed at the archive.
+  - `RestoredPane` injects the Ruffle loader into the iframe's `srcdoc` only
+    when the page has at least one playable embed (`view.hasFlash`). Ruffle's
+    self-hosted build polyfills the remaining `<object>/<embed>` and plays the
+    archived raw `.swf` (R6.1, R6.2). The `.swf` bytes load from the archive the
+    same way every other restored asset does.
+  - Ruffle is loaded from its official distribution (a pinnable CDN build by
+    default, overridable with a self-hosted URL on the app's own origin). A load
+    or init failure is contained by the iframe and does not break the app
+    (R6.5).
+- `mountFlash` + the injectable `RuffleFactory` remain the unit-tested model for
+  mounting a player directly into a `Document`; the iframe path above is the
+  runtime wiring that keeps Flash inside the trust boundary.
+- Browser-only: that a real archived `.swf` actually plays can only be confirmed
+  in a browser; it is listed in the README manual checklist (task 25).
 
 ## 10. Reader view (dom/reader.ts)
 - Run readability on a clone of the parsed DOM (readability mutates its input).

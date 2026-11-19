@@ -160,7 +160,7 @@ Legend: [R#] requirement id, [D#] design section.
 
 ## Phase 5 — Integration, polish, docs (Days 9–10)
 
-22. **End-to-end wiring with fixtures.** Connect input → clients (mocked) →
+22. [x] **End-to-end wiring with fixtures.** Connect input → clients (mocked) →
     rewrite → report → panes, driven by recorded fixtures for a known dead page.
     [D3]
     - Tests: an integration test runs the full flow offline and asserts the
