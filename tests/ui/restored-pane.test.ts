@@ -31,6 +31,6 @@ describe('RestoredPane', () => {
 
   it('labels the pane "Restored" with its literal meaning (voice.md)', () => {
     expect(html).toContain('Restored');
-    expect(html).toContain('the saved page');
+    expect(html).toContain('The saved page');
   });
 });

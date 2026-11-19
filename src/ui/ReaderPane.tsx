@@ -18,10 +18,8 @@ export function ReaderPane({ reader }: ReaderPaneProps) {
   return (
     <section className="pane pane--reader" aria-label="Reader view">
       <header className="pane__head">
-        <h2 className="pane__title">
-          Reader{' '}
-          <span className="pane__literal">— a clean, readable version</span>
-        </h2>
+        <h2 className="pane__title">Reader</h2>
+        <p className="pane__subtitle">A clean, readable version.</p>
       </header>
 
       {reader.ok ? (

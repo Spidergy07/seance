@@ -18,7 +18,7 @@ describe('ReaderPane', () => {
     expect(html).toContain('An Old Essay');
     expect(html).toContain('The text that survived.');
     expect(html).toContain('Reader');
-    expect(html).toContain('a clean, readable version');
+    expect(html).toContain('A clean, readable version');
   });
 
   it('omits an empty title but still renders the body', () => {

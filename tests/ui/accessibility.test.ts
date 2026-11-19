@@ -69,7 +69,7 @@ describe('themed labels are paired with a literal meaning (voice.md)', () => {
   it('death certificate', () => {
     const html = renderToStaticMarkup(createElement(DeathCertificate, { report }));
     expect(html).toContain('Death certificate');
-    expect(html).toContain('what we recovered and what we could not');
+    expect(html).toContain('What we recovered and what we could not');
     // The meter carries its value for assistive tech, not just a coloured bar.
     expect(html).toContain('role="meter"');
     expect(html).toContain('aria-valuenow="33"');
@@ -89,7 +89,7 @@ describe('themed labels are paired with a literal meaning (voice.md)', () => {
       }),
     );
     expect(html).toContain('Restored');
-    expect(html).toContain('the saved page');
+    expect(html).toContain('The saved page');
   });
 
   it('reader pane', () => {
@@ -99,7 +99,7 @@ describe('themed labels are paired with a literal meaning (voice.md)', () => {
       }),
     );
     expect(html).toContain('Reader');
-    expect(html).toContain('a clean, readable version');
+    expect(html).toContain('A clean, readable version');
   });
 });
 

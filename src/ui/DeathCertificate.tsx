@@ -62,11 +62,11 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
     <section className="certificate" aria-labelledby="certificate-title">
       <header className="certificate__head">
         <h2 id="certificate-title" className="certificate__title">
-          Death certificate{' '}
-          <span className="certificate__literal">
-            — what we recovered and what we could not
-          </span>
+          Death certificate
         </h2>
+        <p className="certificate__subtitle">
+          What we recovered and what we could not.
+        </p>
       </header>
 
       {recentlyAlive && lastWorking !== null ? (

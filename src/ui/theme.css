@@ -376,7 +376,8 @@ a {
 .pane__title {
   font-size: 1.25rem;
 }
-.pane__literal {
+.pane__subtitle {
+  margin: var(--s-1) 0 0;
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 400;
@@ -411,13 +412,13 @@ a {
 .certificate__title {
   font-size: 1.5rem;
 }
-.certificate__literal {
+.certificate__subtitle {
+  margin: var(--s-1) 0 0;
   display: block;
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 400;
   color: var(--ink-dim);
-  margin-top: var(--s-1);
 }
 
 .certificate__facts {
@@ -660,13 +661,13 @@ a {
   font-family: var(--font-display);
   font-size: 1.2rem;
 }
-.picker__literal {
+.picker__subtitle {
   display: block;
+  margin: var(--s-1) 0 0;
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 400;
   color: var(--ink-dim);
-  margin-top: var(--s-1);
 }
 .picker__note {
   color: var(--ink-dim);

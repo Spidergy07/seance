@@ -55,9 +55,9 @@ export function CapturePicker({
   return (
     <section className="picker" aria-labelledby="picker-title">
       <h2 id="picker-title" className="picker__title">
-        Reach an older copy{' '}
-        <span className="picker__literal">— pick a saved date to open</span>
+        Reach an older copy
       </h2>
+      <p className="picker__subtitle">Pick a saved date to open.</p>
       <p className="picker__note">
         {captures.length} saved copies in the Internet Archive. Some content,
         such as Flash, only exists in older copies.

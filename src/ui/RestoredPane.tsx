@@ -55,9 +55,8 @@ export function RestoredPane({
   return (
     <section className="pane pane--restored" aria-label="Restored page">
       <header className="pane__head">
-        <h2 className="pane__title">
-          Restored <span className="pane__literal">— the saved page</span>
-        </h2>
+        <h2 className="pane__title">Restored</h2>
+        <p className="pane__subtitle">The saved page.</p>
         <p className="pane__note">
           Loaded from the Internet Archive. Links reopen through Seance, not the
           live web.
