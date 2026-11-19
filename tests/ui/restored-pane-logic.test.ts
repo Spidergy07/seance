@@ -102,6 +102,20 @@ describe('buildRestoredSrcDoc', () => {
     // The guard carries no Ruffle anything.
     expect(out).not.toContain('ruffle');
   });
+
+  it('injects a fit-to-width script that scales a wide page down to the pane (R3.12)', () => {
+    const out = buildRestoredSrcDoc(
+      '<!doctype html><html><head></head><body><table width="800"></table></body></html>',
+    );
+    // Measures the document width against the frame width.
+    expect(out).toContain('scrollWidth');
+    // Re-measures on resize.
+    expect(out).toContain('addEventListener("resize"');
+    // Applies a CSS transform scale (keeps Flash interactive; not `zoom`).
+    expect(out).toContain('scale(');
+    // Only ever scales down, never enlarges.
+    expect(out).toContain('Math.min(1');
+  });
 });
 
 describe('parseRestoredMessage (R3.8)', () => {

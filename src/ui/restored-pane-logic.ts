@@ -143,6 +143,32 @@ export const RUFFLE_ERROR_GUARD_SCRIPT =
   '},true);' +
   '})();</script>';
 
+/**
+ * A fit-to-width script injected into the restored document (R3.12). Old pages
+ * assume a fixed width (500–800px tables, a 550px Flash stage) and overflow the
+ * Restored pane, badly at 375px. On load and on every resize it measures the
+ * document's true width against the frame's own width and, when the content is
+ * wider, scales the body down with a CSS `transform` (never `zoom`, so pointer
+ * events still reach Ruffle and links). It only ever scales down. There is no
+ * transition, so it adds no motion.
+ */
+export const FIT_TO_WIDTH_SCRIPT =
+  '<script>(function(){' +
+  'function fit(){var b=document.body;if(!b)return;' +
+  // Reset first so we measure the page's own width, not a prior scaling.
+  'b.style.transform="none";b.style.width="auto";' +
+  'var sw=document.documentElement.scrollWidth;' +
+  'var vw=window.innerWidth||document.documentElement.clientWidth;' +
+  'if(!sw||!vw)return;' +
+  'var k=Math.min(1,vw/sw);' +
+  'if(k<1){b.style.transformOrigin="0 0";' +
+  'b.style.transform="scale("+k+")";b.style.width=(100/k)+"%";}}' +
+  'window.addEventListener("resize",fit);' +
+  'window.addEventListener("load",fit);' +
+  'if(document.readyState!=="loading"){fit();}' +
+  'else{window.addEventListener("DOMContentLoaded",fit);}' +
+  '})();</script>';
+
 /** Options for assembling the restored document for the iframe. */
 export interface RestoredSrcDocOptions {
   /**
@@ -195,6 +221,7 @@ export function buildRestoredSrcDoc(
   const injected =
     (hasRuffle ? RUFFLE_ERROR_GUARD_SCRIPT : '') +
     IMAGE_GUARD_SCRIPT +
+    FIT_TO_WIDTH_SCRIPT +
     NAVIGATION_GUARD_SCRIPT +
     INTERCEPTOR_SCRIPT;
   const body = /<\/body>/i;
