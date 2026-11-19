@@ -84,3 +84,25 @@ was built, which Kiro features were used, and any problem hit.
   "re-attach fragment" step is needed; design.md §4.2 step 7 is satisfied by
   construction.
 - Problems hit: none. 40 tests pass, typecheck and lint clean.
+
+## Task 6 — URL rewriter (property tests)
+
+- Added `tests/core/url-rewriter.prop.test.ts` with fast-check generators for
+  timestamps, base URLs, and resolvable references (absolute, relative,
+  root-relative, protocol-relative), plus non-resolvable and already-archived
+  references.
+- Asserts the design.md §4.3 invariants, 1000 runs each:
+  - I1 idempotence over arbitrary references (incl. junk strings and archive
+    URLs);
+  - I2 confinement: output starts with the archive prefix and its host is
+    `web.archive.org`;
+  - I3 fragment preservation (+ pure fragments pass through);
+  - I4 query preservation;
+  - I5 passthrough for non-resolvable schemes;
+  - I6 timestamp fidelity via `parseArchiveUrl`.
+- Kiro features used: property-based testing (fast-check) as required by
+  `tech.md` and `design.md` §4.3; spec task 6 lists the exact invariants.
+- Design note: query/fragment generators use a safe character set so the
+  WHATWG URL API does not re-encode them, keeping the preservation assertions
+  exact.
+- Problems hit: none. 46 tests pass (6 property tests), typecheck and lint clean.

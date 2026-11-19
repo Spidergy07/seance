@@ -44,7 +44,7 @@ Legend: [R#] requirement id, [D#] design section.
    already-archived input. [R3.1–R3.6]
    - Done: all example tests pass.
 
-6. **URL rewriter — property tests.** Add
+6. [x] **URL rewriter — property tests.** Add
    `tests/core/url-rewriter.prop.test.ts` with fast-check generators and assert
    the invariants from [D4.3]:
    - I1 idempotence: `rewrite(rewrite(x)) === rewrite(x)` [R3.5]
