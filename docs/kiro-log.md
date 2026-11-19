@@ -591,3 +591,34 @@ was built, which Kiro features were used, and any problem hit.
   full browser axe sweep and a manual keyboard walk are recorded as browser-only
   checks in the README (task 25).
 - Verified: 205 tests pass (8 new), typecheck, lint, and build clean.
+
+## Task 24 — Attribution + privacy review
+
+- Expanded the footer into an "About and credits" region that names the Internet
+  Archive Wayback Machine and the Ruffle project in plain text, states the
+  privacy posture to the visitor (no account, no saved history, nothing stored
+  on the server), and repeats the no-marks/no-endorsement line (R9.3, R9.4,
+  R9.5).
+- Code review of the privacy and attribution requirements:
+  - **Clients call only our own origin.** `grep` confirms `src/archive/*`
+    builds relative `/api/cdx` and `/api/snapshot` paths and never references
+    `archive.org` (R9.1).
+  - **Proxies talk only to the archive.** The only upstream host in `api/` is
+    `https://web.archive.org` (CDX endpoint in `api/cdx.ts`; the snapshot URL
+    comes from `src/core/archive-url.ts`, whose `ARCHIVE_HOST` is
+    `web.archive.org`).
+  - **Nothing is persisted.** No `fs`, database, cache store, cookie, or web
+    storage in `api/`; the functions take a `Request` and return a `Response`
+    (R9.5).
+  - **No third-party marks in the UI.** No `<img>` and no image/logo/trademark
+    asset anywhere under `src/` (R9.3).
+  - **One external runtime contact, documented.** The restored iframe loads the
+    Ruffle runtime from `unpkg.com/@ruffle-rs/ruffle` (a static script, no user
+    data). It is overridable with a self-hosted URL, which removes even that
+    contact; noted in the README deploy section.
+- Added `tests/ui/credits.test.ts` (4 cases) to guard the credits text, the
+  no-endorsement/no-marks rule, the stated privacy posture, and the no-image
+  rule.
+- Kiro features used: the `seance` spec (`requirements.md` R9.1/R9.3/R9.4/R9.5),
+  `voice.md` (plain-text credits, no marks). No spec change needed.
+- Problem hit: none. 209 tests pass (4 new), typecheck, lint, and build clean.

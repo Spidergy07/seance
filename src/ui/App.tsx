@@ -181,11 +181,13 @@ export function App(props: AppProps) {
         )}
       </main>
 
-      <footer className="credits" role="contentinfo">
+      <footer className="credits" role="contentinfo" aria-label="About and credits">
         <p>
           Restoration data comes from the Internet Archive Wayback Machine.
-          Flash playback uses the Ruffle project. Named in plain text, without
-          their marks, and without implying endorsement.
+          Flash playback uses the Ruffle project, loaded from its official
+          build only for pages that reference a Flash file. Seance keeps no
+          account, saves no history, and stores nothing on the server. Named in
+          plain text, without their marks, and without implying endorsement.
         </p>
       </footer>
     </div>

@@ -171,7 +171,7 @@ Legend: [R#] requirement id, [D#] design section.
     reduced-motion behaviour. [voice.md, N4, R9.3]
     - Checks: automated a11y check on the main view; manual keyboard walk.
 
-24. **Attribution + privacy review.** Add plain-text credits for the Internet
+24. [x] **Attribution + privacy review.** Add plain-text credits for the Internet
     Archive and Ruffle; confirm no logos/trademarks; confirm the proxy persists
     nothing and talks only to the archive. [R9.1, R9.3, R9.4, R9.5]
     - Checks: grep the UI for image/logo assets; review proxy code for storage.
