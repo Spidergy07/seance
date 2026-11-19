@@ -223,6 +223,26 @@ function neutraliseMetaCsp(doc: Document): void {
 }
 
 /**
+ * Rewrite Flash `<param name="movie|src" value="...">` URLs to the archive, so
+ * an `<object>` that names its movie through a param (the common Flash shape)
+ * is confined like `object[data]`/`embed[src]` (R3.4). Only the URL-bearing
+ * params are touched; others (e.g. `quality`, `FlashVars`) are left alone, so a
+ * non-URL value is never turned into an archive link.
+ */
+function rewriteFlashParams(doc: Document, ctx: RewriteContext): void {
+  for (const param of Array.from(doc.querySelectorAll('param'))) {
+    const name = (param.getAttribute('name') ?? '').toLowerCase();
+    if (name !== 'movie' && name !== 'src') {
+      continue;
+    }
+    const value = param.getAttribute('value');
+    if (value !== null && value.trim() !== '') {
+      param.setAttribute('value', rewrite(value, ctx));
+    }
+  }
+}
+
+/**
  * Rewrite all resource references in `doc` in place and return the element-level
  * assets it referenced (de-duplicated by original URL).
  */
@@ -233,6 +253,7 @@ export function rewriteDocument(
   neutraliseBase(doc);
   neutraliseMetaCsp(doc);
   neutraliseMetaRefresh(doc, ctx);
+  rewriteFlashParams(doc, ctx);
 
   const assetsByUrl = new Map<string, CollectedAsset>();
   const record = (originalUrl: string | null, kind: AssetKind | null): void => {

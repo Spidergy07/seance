@@ -301,7 +301,7 @@ Found by a human testing the running app (Chrome) against the live Internet
 Archive after the Phase 7 fixes. One local commit per task; tests and typecheck
 pass after each.
 
-35. [ ] **Play archived Flash through a CORS proxy.** Ruffle, running in the
+35. [x] **Play archived Flash through a CORS proxy.** Ruffle, running in the
     opaque-origin restored iframe, could not fetch the raw `.swf` from
     `web.archive.org` (no CORS headers): "Access to fetch has likely been
     blocked by CORS policy." Add `api/swf.ts`, a same-origin proxy that fetches

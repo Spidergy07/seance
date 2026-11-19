@@ -918,3 +918,45 @@ verifier knows what changed):
   line.
 - Confirm the whole recovery finishes or fails within ~20s even when the
   archive is slow, and that the earlier fixes (27–31) still hold.
+
+
+## Task 35 — Play archived Flash through a CORS proxy (browser-test fix)
+
+- Bug (Chrome, live archive): the 2005 homestarrunner capture rendered but
+  Ruffle showed its own error — "Ruffle failed to load the Flash SWF file.
+  Access to fetch has likely been blocked by CORS policy." The restored iframe
+  is `srcdoc` + `sandbox="allow-scripts"` (opaque origin "null"), and
+  web.archive.org sends no CORS headers for the raw `id_` `.swf`, so Ruffle's
+  cross-origin fetch was blocked.
+- Fix:
+  - New serverless proxy `api/swf.ts`: `?url=<archive .swf>` → fetches ONLY from
+    `web.archive.org` (any other host → 400, so it is not an open proxy) under
+    the shared `fetchWithRetry` timeout/retry policy, and relays the bytes with
+    `access-control-allow-origin: *` and a Flash content type (a generic
+    upstream `application/octet-stream` is mapped to
+    `application/x-shockwave-flash`). Stateless. Registered in `api/router.ts`
+    (`/api/swf`); deploys as a Vercel Edge function from the file like the other
+    proxies (Vercel auto-detects `api/*.ts`, consistent with `cdx`/`snapshot`).
+  - New pure `src/core/swf-proxy.ts`: `buildSwfProxyUrl`/`parseSwfProxyUrl`/
+    `isSwfProxyUrl`. The proxy URL carries the archive URL in its `url` param, so
+    confinement (R3.4/I2) holds through the proxy; the parser only accepts a
+    target that is an archive URL.
+  - `src/dom/rewrite-document.ts` now also confines Flash `<param name="movie|src">`
+    values to the archive (the common `<object>` movie shape), so a param-driven
+    movie no longer points at the dead origin.
+  - New `src/dom/rewrite-swf.ts` `rewriteSwfToProxy(doc, proxyBase)` wraps the
+    remaining (playable) archive `.swf` `object[data]`/`embed[src]`/
+    `param[name=movie|src]` values with an absolute app-origin proxy URL. It
+    runs in `recover` after `applyFlashNotices`; `browserRecoverDeps` injects
+    `swfProxyBase = window.location.origin + /api/swf`. An absolute URL is used
+    because a relative one is unreliable from an opaque-origin srcdoc.
+- Spec: R6.6 (+R6.1, R6.2, R9.1); design §9.1; tasks.md task 35.
+- Tests (offline, first): `tests/core/swf-proxy.test.ts`,
+  `tests/api/swf.test.ts`, `tests/dom/rewrite-swf.test.ts`, a `/api/swf` route
+  case in `tests/api/router.test.ts`, and an end-to-end proxy-routing assertion
+  in `tests/integration/recover-flow.test.ts`.
+- Live check (allowed one-shots): ran the proxy handler with real `fetch`
+  against `web.archive.org` for `.../welcome.swf` — HTTP 200,
+  `access-control-allow-origin: *`, 16124 bytes beginning `CWS` (a compressed
+  SWF); a non-archive host returned 400 with no fetch.
+- Verified: full suite 269 passing; typecheck and lint clean.

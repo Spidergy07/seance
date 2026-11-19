@@ -16,6 +16,7 @@ import type { ClientErrorKind } from '../archive/result.js';
 import { selectCapture, selectByTimestamp, byDate } from '../core/capture-select.js';
 import { buildRecoveryReport } from '../core/recovery.js';
 import { rewriteDocument } from '../dom/rewrite-document.js';
+import { rewriteSwfToProxy } from '../dom/rewrite-swf.js';
 import { resolveAssetStatuses, DEFAULT_MAX_CHECKED_ASSETS } from '../dom/asset-status.js';
 import { applyFlashNotices } from '../dom/flash.js';
 import { extractReader } from '../dom/reader.js';
@@ -50,6 +51,13 @@ export interface RecoverDeps {
   cdxCache?: CdxCache;
   /** Overall recovery deadline in milliseconds (R8.9). Defaults to 20000. */
   deadlineMs?: number;
+  /**
+   * Absolute app-origin URL for the `.swf` CORS proxy (`/api/swf`). When set,
+   * recovered `.swf` embeds are routed through it so Ruffle in the opaque
+   * -origin iframe can fetch the bytes (R6.6). Defaults to the browser's own
+   * origin; omitted in tests that do not need it.
+   */
+  swfProxyBase?: string;
   /**
    * Create the deadline handle for one recovery. Injected in tests; defaults to
    * an `AbortController` aborted by a `setTimeout`.
@@ -230,6 +238,12 @@ async function runRecovery(
     (url) => flashStatusByUrl.get(url) ?? 'unknown',
   );
 
+  // Route the remaining (playable) `.swf` embeds through our CORS proxy so
+  // Ruffle, running in the opaque-origin iframe, can fetch the bytes (R6.6).
+  if (deps.swfProxyBase !== undefined && deps.swfProxyBase !== '') {
+    rewriteSwfToProxy(restoredDoc, deps.swfProxyBase);
+  }
+
   const readerDeps: ReaderDeps = { parseHtml: deps.parseHtml };
   if (deps.createReadability !== undefined) {
     readerDeps.createReadability = deps.createReadability;
@@ -265,6 +279,7 @@ export function browserRecoverDeps(): RecoverDeps {
   return {
     fetch: (...args) => fetch(...args),
     cdxCache: browserCdxCache,
+    swfProxyBase: `${window.location.origin}/api/swf`,
     parseHtml: (html) => new DOMParser().parseFromString(html, 'text/html'),
     serialize: (doc) =>
       `<!doctype html>${doc.documentElement?.outerHTML ?? new XMLSerializer().serializeToString(doc)}`,

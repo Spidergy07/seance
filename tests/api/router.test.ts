@@ -65,6 +65,29 @@ describe('handleApiRequest', () => {
     expect(calledUrl).toContain('web.archive.org/web/20080303120000id_/');
   });
 
+  it('routes /api/swf to the swf CORS proxy', async () => {
+    let calledUrl = '';
+    const fetchMock = ((input: unknown) => {
+      calledUrl = String(input);
+      return Promise.resolve(
+        new Response(new Uint8Array([0x43, 0x57, 0x53]), {
+          status: 200,
+          headers: { 'content-type': 'application/x-shockwave-flash' },
+        }),
+      );
+    }) as typeof fetch;
+    const archive =
+      'https://web.archive.org/web/20051231232721id_/http://x/welcome.swf';
+    const request = new Request(
+      `http://localhost/api/swf?url=${encodeURIComponent(archive)}`,
+    );
+    const response = await handleApiRequest(request, deps(fetchMock), options);
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get('access-control-allow-origin')).toBe('*');
+    expect(calledUrl).toBe(archive);
+  });
+
   it('returns null for a path it does not serve', async () => {
     const fetchMock = vi.fn();
     const request = new Request('http://localhost/api/unknown');

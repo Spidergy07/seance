@@ -7,6 +7,7 @@
 
 import handleCdxRequest from './cdx.js';
 import handleSnapshotRequest from './snapshot.js';
+import handleSwfRequest from './swf.js';
 import {
   DEFAULT_RETRY_OPTIONS,
   defaultHttpDeps,
@@ -17,6 +18,7 @@ import {
 /** The proxy paths this router serves. */
 export const CDX_PATH = '/api/cdx';
 export const SNAPSHOT_PATH = '/api/snapshot';
+export const SWF_PATH = '/api/swf';
 
 /**
  * Dispatch an incoming request to the matching proxy. Returns the proxy's
@@ -34,6 +36,9 @@ export async function handleApiRequest(
   }
   if (pathname === SNAPSHOT_PATH) {
     return handleSnapshotRequest(request, deps, options);
+  }
+  if (pathname === SWF_PATH) {
+    return handleSwfRequest(request, deps, options);
   }
   return null;
 }

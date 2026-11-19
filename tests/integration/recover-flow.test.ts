@@ -84,6 +84,8 @@ function deps(): RecoverDeps {
     // This test verifies full asset accounting, so lift the per-recovery check
     // cap (R8.7) above the five assets in the fixture.
     maxCheckedAssets: 10,
+    // Route recovered .swf through our CORS proxy, as the browser does.
+    swfProxyBase: 'https://seance.example/api/swf',
   };
 }
 
@@ -131,6 +133,13 @@ describe('end-to-end recovery flow (fixtures)', () => {
     expect(view.restoredHtml).not.toMatch(/(src|href)="https?:\/\/oldsite\.example/);
     // The recovered .swf stays in the document for Ruffle to play.
     expect(view.hasFlash).toBe(true);
+    // The recovered .swf is routed through our same-origin CORS proxy so
+    // Ruffle in the opaque-origin iframe can fetch it; the target is still an
+    // archive URL (confinement preserved via the proxy).
+    expect(view.restoredHtml).toContain('https://seance.example/api/swf?url=');
+    const proxied = /\/api\/swf\?url=([^"'&]+)/.exec(view.restoredHtml);
+    expect(proxied).not.toBeNull();
+    expect(decodeURIComponent(proxied?.[1] ?? '')).toContain('web.archive.org');
   });
 
   it('renders the death certificate with counts and percent', async () => {
