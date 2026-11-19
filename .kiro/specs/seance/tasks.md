@@ -176,7 +176,7 @@ Legend: [R#] requirement id, [D#] design section.
     nothing and talks only to the archive. [R9.1, R9.3, R9.4, R9.5]
     - Checks: grep the UI for image/logo assets; review proxy code for storage.
 
-25. **Manual verification against real archive.** With a real dead URL: confirm
+25. [x] **Manual verification against real archive.** With a real dead URL: confirm
     restored assets load from the archive prefix, the certificate shows a real
     last-good date and a computed percent, one `.swf` plays via Ruffle, reader
     view is legible on a narrow screen, and each error state can be reproduced

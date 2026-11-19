@@ -62,3 +62,49 @@ without implying endorsement.
 
 ## License
 MIT. See [LICENSE](./LICENSE).
+
+## Manual verification against the live archive
+
+Checked against the live Wayback CDX API on 19 November 2026 with a small number
+of one-shot requests (no browser). These confirm the data the pipeline depends
+on is real; the rendering checks that need a browser are listed afterwards.
+
+### Dead page with good captures — `http://www.geocities.com/Athens/`
+- The Wayback CDX returns HTTP 200 captures from 22 October 1996 to
+  17 October 2000 (most recent 200: timestamp `20001017124759`).
+- Captures after that are HTTP 301 redirects (the GeoCities domain now parks and
+  redirects), so Seance's "most recent working (200) capture" rule lands on
+  17 October 2000. The death certificate reads **Last working capture:
+  17 October 2000**, computed from real CDX rows, not a guess.
+
+### Archived Flash — `http://www.homestarrunner.com/intro.swf`
+- The CDX returns HTTP 200 captures at `20040325185740` (25 March 2004) and
+  `20060626144354` (26 June 2006).
+- Seance rewrites this to the raw archive URL
+  `https://web.archive.org/web/20060626144354id_/http://www.homestarrunner.com/intro.swf`
+  and hands it to Ruffle inside the sandboxed restored iframe.
+- Note: a per-asset exact-URL CDX query is reliable; a broad `matchType=prefix`
+  regex filter for `.swf` was not, which is why Seance looks assets up by their
+  exact resolved URL (see `src/archive/capture-lookup.ts`).
+
+### Outage state, observed live
+- During these checks the CDX API intermittently returned an Internet Archive
+  "Temporarily Offline" HTML page instead of JSON. This is the exact
+  archive-side failure Seance reports through R8.4: a non-JSON/5xx upstream
+  becomes "We could not reach the Internet Archive right now. This is on their
+  side or the network, not your URL." The proxy's parse guard (`api/cdx.ts`)
+  turns that non-JSON body into a typed error rather than crashing.
+
+### Browser-only checks still needing a human
+These cannot be verified without a real browser; run `npm run dev` and walk
+through them:
+- [ ] Both URLs above load end to end; restored assets visibly come from
+      `web.archive.org`, and the certificate shows the real last-good date and a
+      computed recovery percent.
+- [ ] `http://www.homestarrunner.com/intro.swf` actually plays via Ruffle in the
+      sandboxed iframe (WebAssembly load + playback).
+- [ ] The reader view is legible on a 375px-wide screen (panes stack, reader
+      first).
+- [ ] Each error state renders in the UI: no-contact (an un-archived URL),
+      partial recovery, rate-limit countdown, and the outage message above.
+- [ ] An axe/Lighthouse accessibility sweep and a keyboard-only walk pass.

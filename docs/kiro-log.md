@@ -622,3 +622,38 @@ was built, which Kiro features were used, and any problem hit.
 - Kiro features used: the `seance` spec (`requirements.md` R9.1/R9.3/R9.4/R9.5),
   `voice.md` (plain-text credits, no marks). No spec change needed.
 - Problem hit: none. 209 tests pass (4 new), typecheck, lint, and build clean.
+
+## Task 25 — Manual verification against real archive
+
+- No browser available here, so I verified the data the pipeline depends on with
+  11 one-shot CDX requests against the live Wayback Machine (sequential, with
+  pauses, well under the 30-request budget), and recorded the results in the
+  README "Manual verification against the live archive" section.
+- Findings:
+  - **Dead page with good captures:** `http://www.geocities.com/Athens/` has
+    HTTP 200 captures from 22 Oct 1996 to 17 Oct 2000; everything after is a
+    301 redirect, so Seance's most-recent-200 rule yields a real "Last working
+    capture: 17 October 2000".
+  - **Archived .swf:** `http://www.homestarrunner.com/intro.swf` has HTTP 200
+    captures at `20040325185740` and `20060626144354`, so Ruffle has a real
+    archived movie to play (raw URL
+    `https://web.archive.org/web/20060626144354id_/http://www.homestarrunner.com/intro.swf`).
+  - **Outage state, observed live:** the CDX API intermittently returned an
+    Internet Archive "Temporarily Offline" HTML page instead of JSON during the
+    session — the exact archive-side failure the app reports (R8.4), and a
+    confirmation that the proxy's non-JSON parse guard matters in practice.
+- The browser-only checks (assets visibly loading from the archive, Ruffle
+  actually playing the .swf, 375px reader legibility, each error state in the
+  UI, an axe/keyboard sweep) are listed as an unchecked human checklist in the
+  README.
+- Spec/requirements finding: a broad `matchType=prefix` regex filter for `.swf`
+  returned nothing, while exact-URL CDX queries are reliable. This matches the
+  existing design (per-asset exact-URL lookups in `capture-lookup.ts`), so no
+  code change was needed; noted in the README.
+- Kiro features used: the `seance` spec (`requirements.md` R2/R3/R5/R6/R8), and
+  `voice.md` (absolute dates, never claim success that is unverified — the .swf
+  playback is left unchecked for a human, not asserted).
+- Problem hit: the live archive went into a temporary outage mid-session; I
+  paused and spaced the remaining requests, and used the outage itself as a real
+  data point rather than retrying hard.
+- Verified (data, not browser): 209 tests still pass, typecheck clean.
