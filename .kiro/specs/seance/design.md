@@ -176,8 +176,10 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 ## 7. DOM rewriting (dom/rewrite-document.ts)
 - Walk these attributes: `a[href]`, `link[href]`, `script[src]`, `img[src]`,
   `img[srcset]`, `source[src]`, `source[srcset]`, `video[poster]`,
-  `audio[src]`, `iframe[src]`, `object[data]`, `embed[src]`, inline `style`
-  attributes, and `<style>` text content.
+  `audio[src]`, `iframe[src]`, `frame[src]`, `object[data]`, `embed[src]`, the
+  legacy presentational `background` attribute (body/table/tr/td) and
+  `input[src]` (image buttons), inline `style` attributes, and `<style>` text
+  content.
 - Each URL goes through `core/url-rewriter.rewrite`. The DOM layer never builds
   archive URLs itself.
 - `video[src]` is rewritten alongside `audio[src]` so a direct video source is

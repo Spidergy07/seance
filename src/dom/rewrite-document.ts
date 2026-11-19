@@ -98,6 +98,13 @@ const ATTR_RULES: AttrRule[] = [
     mode: 'url',
     kindOf: (_el, url) => (isSwf(url) ? 'flash' : 'other'),
   },
+  // Legacy presentational attributes old pages (e.g. GeoCities) still use for
+  // images. Without these the images neither load from the archive nor enter
+  // the recovery report, so a broken background read as "100% recovered"
+  // (R3.4, R4.1). `[background]` covers body/table/tr/td; `input[src]` is the
+  // image submit button.
+  { selector: '[background]', attr: 'background', mode: 'url', kindOf: () => 'image' },
+  { selector: 'input[src]', attr: 'src', mode: 'url', kindOf: () => 'image' },
 ];
 
 /** The URL part of each `srcset` candidate (descriptors dropped). */

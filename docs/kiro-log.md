@@ -719,3 +719,28 @@ was built, which Kiro features were used, and any problem hit.
 - Kiro features used: the `seance` spec drove the requirement IDs; the
   structure steering kept URL decisions in core and DOM work in `src/dom`.
 - Verified: `npm run typecheck` clean; full suite 215 passing.
+
+
+## Task 28 — Honest asset accounting (fix round)
+
+- Bug: on `http://www.geocities.com/Athens/` the certificate said "3 of 3
+  assets recovered, 100%" while the restored page showed a broken image icon.
+- Root cause: GeoCities-era pages put images in legacy presentational
+  attributes — `background` on `body`/`table`/`td` and `<input type=image
+  src>`. These were not in the rewrite/collect set, so such an image was never
+  rewritten to the archive (it stayed pointed at the dead origin and showed
+  broken) and never entered the recovery report, leaving the honest-but-partial
+  count reading as a full 100%.
+- Fix (`src/dom/rewrite-document.ts`): added two rules — `[background]`
+  (body/table/tr/td) and `input[src]`, both image assets. They go through the
+  same core rewriter and asset collection as every other reference, so a
+  background image with no status-200 capture is now rewritten to the archive
+  and reported `missing`; only a real 200 capture counts as recovered
+  (`resolveAssetStatuses` already enforced that).
+- Spec: design §7 attribute list now names the legacy attributes; tasks.md
+  task 28. Behaviour is covered by existing R4.1–R4.4 and R3.4.
+- Tests (offline): `tests/dom/legacy-assets.test.ts` with new fixture
+  `legacy-assets.html` — one working image of five gives 20%, and the
+  background images report missing. Wrote the test first (3 failing), then
+  implemented.
+- Verified: `npm run typecheck` clean; full suite 218 passing.
