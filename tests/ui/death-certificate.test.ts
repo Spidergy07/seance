@@ -86,6 +86,25 @@ describe('DeathCertificate', () => {
     expect(html).toContain('0 missing');
     expect(html).not.toContain('id="missing-spirits"');
   });
+
+  // Task 37: a render error from this component blanked the result while
+  // switching captures. These reproduce the throwing inputs and assert the
+  // certificate now renders a plain fallback instead of throwing (R5.5).
+  it('does not throw when the last working capture is undefined', () => {
+    const report = { ...baseReport, lastWorkingCapture: undefined as unknown as Capture };
+    expect(() => render(report)).not.toThrow();
+    expect(render(report)).toContain('No working capture found');
+  });
+
+  it('does not throw when the selected capture is missing', () => {
+    const report = { ...baseReport, selectedCapture: undefined as unknown as Capture };
+    expect(() => render(report)).not.toThrow();
+  });
+
+  it('does not throw when the report has no assets array', () => {
+    const report = { ...baseReport, assets: undefined as unknown as RecoveryReport['assets'] };
+    expect(() => render(report)).not.toThrow();
+  });
 });
 
 describe('DeathCertificate — recently-alive state (task 29)', () => {

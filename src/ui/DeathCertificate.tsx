@@ -27,24 +27,36 @@ const KIND_LABELS: Record<AssetKind, string> = {
 const MISSING_LIST_ID = 'missing-spirits';
 
 export function DeathCertificate({ report, now }: DeathCertificateProps) {
-  const { selectedCapture, lastWorkingCapture, recoveredCount, totalCount, recoveryPercent } =
-    report;
+  const { selectedCapture, lastWorkingCapture } = report;
 
-  const missingCount = report.assets.filter((a) => a.status === 'missing').length;
-  const unknownCount = report.assets.filter((a) => a.status === 'unknown').length;
-  const missingByKind = groupMissingByKind(report.assets);
+  // Be defensive: a report may arrive without a selected or last-working
+  // capture (null or undefined), and in rare cases without an assets array or
+  // the numeric totals. Treat an absent capture as "none" rather than reading
+  // `.timestamp` off it, so the certificate renders a plain fallback instead of
+  // throwing (R5.5).
+  const selected = selectedCapture ?? null;
+  const lastWorking = lastWorkingCapture ?? null;
+  const assets = report.assets ?? [];
+  const recoveredCount = report.recoveredCount ?? 0;
+  const totalCount = report.totalCount ?? 0;
+  const recoveryPercent = report.recoveryPercent ?? 0;
+
+  const missingCount = assets.filter((a) => a.status === 'missing').length;
+  const unknownCount = assets.filter((a) => a.status === 'unknown').length;
+  const missingByKind = groupMissingByKind(assets);
 
   const selectedDiffers =
-    lastWorkingCapture !== null &&
-    selectedCapture.timestamp !== lastWorkingCapture.timestamp;
+    lastWorking !== null &&
+    selected !== null &&
+    selected.timestamp !== lastWorking.timestamp;
 
   // Whether the most recent working capture is recent enough that calling the
   // site dead would be wrong (task 29, R5.1). `now` defaults to the real clock.
   const liveness = classifyLiveness(
-    lastWorkingCapture?.timestamp ?? null,
+    lastWorking?.timestamp ?? null,
     now ?? Date.now(),
   );
-  const recentlyAlive = lastWorkingCapture !== null && liveness.recentlyAlive;
+  const recentlyAlive = lastWorking !== null && liveness.recentlyAlive;
 
   return (
     <section className="certificate" aria-labelledby="certificate-title">
@@ -57,10 +69,10 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
         </h2>
       </header>
 
-      {recentlyAlive && lastWorkingCapture !== null ? (
+      {recentlyAlive && lastWorking !== null ? (
         <p className="certificate__alive" role="note">
           Still answering recently. Last saved copy:{' '}
-          {formatCaptureDate(lastWorkingCapture.timestamp)}. This address still
+          {formatCaptureDate(lastWorking.timestamp)}. This address still
           had a working copy saved in the last {RECENTLY_ALIVE_DAYS} days, so it
           may not be dead. To see an older capture, pick an earlier date below.
         </p>
@@ -69,28 +81,28 @@ export function DeathCertificate({ report, now }: DeathCertificateProps) {
           <div className="fact">
             <dt className="fact__term">Died on (last working capture)</dt>
             <dd className="fact__value">
-              {lastWorkingCapture !== null
-                ? formatCaptureDate(lastWorkingCapture.timestamp)
+              {lastWorking !== null
+                ? formatCaptureDate(lastWorking.timestamp)
                 : 'No working capture found'}
             </dd>
           </div>
-          {selectedDiffers && (
+          {selectedDiffers && selected !== null && (
             <div className="fact">
               <dt className="fact__term">Showing the capture from</dt>
               <dd className="fact__value">
-                {formatCaptureDate(selectedCapture.timestamp)}
+                {formatCaptureDate(selected.timestamp)}
               </dd>
             </div>
           )}
         </dl>
       )}
 
-      {recentlyAlive && selectedDiffers && (
+      {recentlyAlive && selectedDiffers && selected !== null && (
         <dl className="certificate__facts">
           <div className="fact">
             <dt className="fact__term">Showing the capture from</dt>
             <dd className="fact__value">
-              {formatCaptureDate(selectedCapture.timestamp)}
+              {formatCaptureDate(selected.timestamp)}
             </dd>
           </div>
         </dl>

@@ -324,7 +324,7 @@ pass after each.
     - Tests (first): a pure `collapseCapturesByDay` returns one capture per day,
       prefers status 200, orders newest first; the picker shows a given day once.
 
-37. [ ] **Death certificate never crashes; error boundary around the panels.**
+37. [x] **Death certificate never crashes; error boundary around the panels.**
     A render error from `<DeathCertificate>` blanked the result while switching
     captures. Treat an absent (null/undefined) selected or last-working capture
     as "no working capture found" instead of reading `.timestamp` off it, and

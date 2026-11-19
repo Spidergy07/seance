@@ -980,3 +980,34 @@ verifier knows what changed):
   to most recent, keep separate days newest-first) and a year-grouping case
   asserting a day is not repeated, in `tests/ui/capture-picker-logic.test.ts`.
 - Verified: full suite 273 passing; typecheck and lint clean.
+
+
+## Task 37 — Certificate never crashes; error boundary around the panels (browser-test fix)
+
+- Bug (Chrome): a render error from `<DeathCertificate>` ("The above error
+  occurred in the <DeathCertificate> component") blanked the whole result while
+  switching captures.
+- Root cause: the component read `.timestamp` off the selected/last-working
+  capture after a `!== null` check only. A battery render over edge inputs
+  confirmed it throws when a capture is `undefined` (not just `null`) or when
+  the report has no `assets` array — the `!== null` guard lets `undefined`
+  through to `selectedCapture.timestamp`.
+- Fix:
+  - `DeathCertificate` now coalesces an absent selected/last-working capture
+    (null or undefined) to `null`, defaults a missing `assets` array and the
+    numeric totals, and guards the "showing the capture from" lines on a present
+    capture. An absent last-working capture reads "No working capture found"
+    rather than throwing (R5.5).
+  - New `src/ui/ResultErrorBoundary.tsx`: a class error boundary plus a plain
+    `ResultErrorFallback` (voice.md: names the fault as ours, not the address,
+    offers "Try again"). `App` wraps the whole result section in it with a retry
+    that re-runs recovery, so any panel render error shows the plain message
+    instead of a blank page. Styles added to `theme.css` (cold/ember accent,
+    keyboard-operable button).
+- Spec: R5.5; design §6; tasks.md task 37.
+- Tests (offline, first): `tests/ui/death-certificate.test.ts` reproduces the
+  throwing inputs (undefined last-working, missing selected, absent assets) and
+  asserts no throw + the plain fallback; `tests/ui/error-boundary.test.ts`
+  covers `getDerivedStateFromError`, children passthrough, and the fallback
+  render with retry.
+- Verified: full suite 280 passing; typecheck and lint clean.

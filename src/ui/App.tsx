@@ -13,6 +13,7 @@ import { ReaderPane } from './ReaderPane.js';
 import { DeathCertificate } from './DeathCertificate.js';
 import { CapturePicker } from './CapturePicker.js';
 import { StatusBanner } from './StatusBanner.js';
+import { ResultErrorBoundary } from './ResultErrorBoundary.js';
 import { browserRecoverDeps, recover } from './recover.js';
 import { formatCaptureDate } from './format.js';
 import { recoveryStepLabel, type RecoveryStep } from './progress.js';
@@ -176,35 +177,37 @@ export function App(props: AppProps) {
 
         {phase.status === 'done' && (
           <section className="result" aria-label="Recovery result">
-            {phase.view.report.recoveryPercent < 100 && (
-              <StatusBanner
-                status={{
-                  kind: 'partial',
-                  recoveredCount: phase.view.report.recoveredCount,
-                  missingCount: phase.view.report.assets.filter(
-                    (a) => a.status === 'missing',
-                  ).length,
-                  totalCount: phase.view.report.totalCount,
-                }}
+            <ResultErrorBoundary onRetry={() => start(phase.view.pageOriginalUrl)}>
+              {phase.view.report.recoveryPercent < 100 && (
+                <StatusBanner
+                  status={{
+                    kind: 'partial',
+                    recoveredCount: phase.view.report.recoveredCount,
+                    missingCount: phase.view.report.assets.filter(
+                      (a) => a.status === 'missing',
+                    ).length,
+                    totalCount: phase.view.report.totalCount,
+                  }}
+                />
+              )}
+              <DeathCertificate report={phase.view.report} />
+              <CapturePicker
+                captures={phase.view.captures}
+                selectedTimestamp={phase.view.selectedCapture.timestamp}
+                onPick={(timestamp) => start(phase.view.pageOriginalUrl, timestamp)}
               />
-            )}
-            <DeathCertificate report={phase.view.report} />
-            <CapturePicker
-              captures={phase.view.captures}
-              selectedTimestamp={phase.view.selectedCapture.timestamp}
-              onPick={(timestamp) => start(phase.view.pageOriginalUrl, timestamp)}
-            />
-            <div className="panes">
-              {/* Reader is first in the DOM so it leads when the panes stack
-                  on a narrow screen (R7.2). */}
-              <ReaderPane reader={phase.view.reader} />
-              <RestoredPane
-                html={phase.view.restoredHtml}
-                pageOriginalUrl={phase.view.pageOriginalUrl}
-                onNavigate={start}
-                hasFlash={phase.view.hasFlash}
-              />
-            </div>
+              <div className="panes">
+                {/* Reader is first in the DOM so it leads when the panes stack
+                    on a narrow screen (R7.2). */}
+                <ReaderPane reader={phase.view.reader} />
+                <RestoredPane
+                  html={phase.view.restoredHtml}
+                  pageOriginalUrl={phase.view.pageOriginalUrl}
+                  onNavigate={start}
+                  hasFlash={phase.view.hasFlash}
+                />
+              </div>
+            </ResultErrorBoundary>
           </section>
         )}
       </main>

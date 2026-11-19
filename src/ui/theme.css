@@ -752,3 +752,32 @@ a {
     box-shadow: 0 0 0 0.4rem var(--candle-glow);
   }
 }
+
+/* --- Result error boundary fallback --------------------------------------- */
+.result-error {
+  margin: var(--s-4) 0;
+  padding: var(--s-4);
+  border: 1px solid var(--ember-deep);
+  border-left: 4px solid var(--ember);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.result-error__line {
+  margin: 0 0 var(--s-3);
+  color: var(--ink);
+}
+
+.result-error__retry {
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--panel-edge-strong);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.result-error__retry:hover {
+  border-color: var(--candle);
+  color: var(--candle);
+}
