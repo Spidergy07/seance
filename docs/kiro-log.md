@@ -106,3 +106,21 @@ was built, which Kiro features were used, and any problem hit.
   WHATWG URL API does not re-encode them, keeping the preservation assertions
   exact.
 - Problems hit: none. 46 tests pass (6 property tests), typecheck and lint clean.
+
+## Task 7 — srcset and CSS url() rewriting
+
+- Extended `src/core/url-rewriter.ts` with `rewriteSrcset` and `rewriteCssUrls`,
+  both delegating each URL to `rewrite`. srcset keeps commas, whitespace, and
+  descriptors verbatim; CSS keeps the original quote style and leaves `data:`
+  URLs untouched.
+- Tests: `tests/core/srcset-css.test.ts` (9 example cases incl. `1x`/`2x`/`640w`
+  descriptors, quoted/unquoted/single-quoted `url()`, multiple `url()`, and a
+  `data:` URL left alone) and `tests/core/srcset-css.prop.test.ts` (2 property
+  tests): descriptors survive and the comma count is preserved; CSS quote shape
+  is preserved; every rewritten URL is an archive URL.
+- Kiro features used: `design.md` §4.4 (srcset/CSS handling), property-based
+  testing for shape preservation.
+- Known limitation (documented in code): a `data:` URI containing commas inside
+  a `srcset` candidate is not supported, because commas split candidates. Such
+  URLs are rare in srcset.
+- Problems hit: none. 57 tests pass, typecheck and lint clean.

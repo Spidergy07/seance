@@ -57,7 +57,7 @@ Legend: [R#] requirement id, [D#] design section.
    - I6 timestamp fidelity: embedded timestamp equals `ctx.timestamp`
    - Done: property suite passes with a reasonable run count (e.g. 1000 runs).
 
-7. **`srcset` and CSS `url(...)` rewriting.** Extend the rewriter (or add
+7. [x] **`srcset` and CSS `url(...)` rewriting.** Extend the rewriter (or add
    helpers) for comma-separated `srcset` and `url(...)` extraction, preserving
    descriptors and quoting. [D4.4]
    - Tests: multi-candidate `srcset` keeps descriptors; quoted and unquoted

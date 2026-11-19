@@ -81,3 +81,52 @@ export function rewrite(ref: string, ctx: RewriteContext): string {
   const raw = ctx.raw ?? true;
   return buildArchiveUrl(absolute, ctx.timestamp, { raw });
 }
+
+/**
+ * Rewrite every URL in a `srcset` value, preserving commas, whitespace, and
+ * descriptors (e.g. `2x`, `640w`) verbatim. Each candidate's URL goes through
+ * `rewrite`; the descriptor is untouched. See design.md §4.4.
+ *
+ * Note: a candidate whose URL is a `data:` URI containing commas is not
+ * supported (commas split candidates). Such URLs are rare in `srcset` and are
+ * left to the caller to avoid.
+ */
+export function rewriteSrcset(srcset: string, ctx: RewriteContext): string {
+  if (srcset.trim() === '') {
+    return srcset;
+  }
+  return srcset
+    .split(',')
+    .map((candidate) => {
+      const leading = candidate.slice(
+        0,
+        candidate.length - candidate.trimStart().length,
+      );
+      const trailing = candidate.slice(candidate.trimEnd().length);
+      const trimmed = candidate.trim();
+      if (trimmed === '') {
+        return candidate;
+      }
+      // The URL runs up to the first whitespace; the rest is the descriptor.
+      const spaceIndex = trimmed.search(/\s/);
+      const url = spaceIndex === -1 ? trimmed : trimmed.slice(0, spaceIndex);
+      const descriptor = spaceIndex === -1 ? '' : trimmed.slice(spaceIndex);
+      return `${leading}${rewrite(url, ctx)}${descriptor}${trailing}`;
+    })
+    .join(',');
+}
+
+/** Matches a CSS `url(...)` token, capturing the optional quote and the URL. */
+const CSS_URL_RE = /url\(\s*(['"]?)([^'")]*)\1\s*\)/gi;
+
+/**
+ * Rewrite every `url(...)` in a CSS string (stylesheet text or an inline
+ * `style` attribute value), preserving the original quoting style. Each inner
+ * URL goes through `rewrite`, so non-resolvable schemes such as `data:` are
+ * left untouched. See design.md §4.4.
+ */
+export function rewriteCssUrls(css: string, ctx: RewriteContext): string {
+  return css.replace(CSS_URL_RE, (_match, quote: string, inner: string) => {
+    return `url(${quote}${rewrite(inner, ctx)}${quote})`;
+  });
+}
