@@ -6,10 +6,13 @@
 
 import type { AssetKind, RecoveryReport } from '../core/types.js';
 import { groupMissingByKind } from '../core/recovery.js';
+import { classifyLiveness, RECENTLY_ALIVE_DAYS } from '../core/liveness.js';
 import { formatCaptureDate } from './format.js';
 
 export interface DeathCertificateProps {
   report: RecoveryReport;
+  /** Reference time (epoch ms) for the liveness check. Injected in tests. */
+  now?: number;
 }
 
 const KIND_LABELS: Record<AssetKind, string> = {
@@ -23,7 +26,7 @@ const KIND_LABELS: Record<AssetKind, string> = {
 
 const MISSING_LIST_ID = 'missing-spirits';
 
-export function DeathCertificate({ report }: DeathCertificateProps) {
+export function DeathCertificate({ report, now }: DeathCertificateProps) {
   const { selectedCapture, lastWorkingCapture, recoveredCount, totalCount, recoveryPercent } =
     report;
 
@@ -34,6 +37,14 @@ export function DeathCertificate({ report }: DeathCertificateProps) {
   const selectedDiffers =
     lastWorkingCapture !== null &&
     selectedCapture.timestamp !== lastWorkingCapture.timestamp;
+
+  // Whether the most recent working capture is recent enough that calling the
+  // site dead would be wrong (task 29, R5.1). `now` defaults to the real clock.
+  const liveness = classifyLiveness(
+    lastWorkingCapture?.timestamp ?? null,
+    now ?? Date.now(),
+  );
+  const recentlyAlive = lastWorkingCapture !== null && liveness.recentlyAlive;
 
   return (
     <section className="certificate" aria-labelledby="certificate-title">
@@ -46,24 +57,44 @@ export function DeathCertificate({ report }: DeathCertificateProps) {
         </h2>
       </header>
 
-      <dl className="certificate__facts">
-        <div className="fact">
-          <dt className="fact__term">Died on (last working capture)</dt>
-          <dd className="fact__value">
-            {lastWorkingCapture !== null
-              ? formatCaptureDate(lastWorkingCapture.timestamp)
-              : 'No working capture found'}
-          </dd>
-        </div>
-        {selectedDiffers && (
+      {recentlyAlive && lastWorkingCapture !== null ? (
+        <p className="certificate__alive" role="note">
+          Still answering recently. Last saved copy:{' '}
+          {formatCaptureDate(lastWorkingCapture.timestamp)}. This address still
+          had a working copy saved in the last {RECENTLY_ALIVE_DAYS} days, so it
+          may not be dead. To see an older capture, pick an earlier date below.
+        </p>
+      ) : (
+        <dl className="certificate__facts">
+          <div className="fact">
+            <dt className="fact__term">Died on (last working capture)</dt>
+            <dd className="fact__value">
+              {lastWorkingCapture !== null
+                ? formatCaptureDate(lastWorkingCapture.timestamp)
+                : 'No working capture found'}
+            </dd>
+          </div>
+          {selectedDiffers && (
+            <div className="fact">
+              <dt className="fact__term">Showing the capture from</dt>
+              <dd className="fact__value">
+                {formatCaptureDate(selectedCapture.timestamp)}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+
+      {recentlyAlive && selectedDiffers && (
+        <dl className="certificate__facts">
           <div className="fact">
             <dt className="fact__term">Showing the capture from</dt>
             <dd className="fact__value">
               {formatCaptureDate(selectedCapture.timestamp)}
             </dd>
           </div>
-        )}
-      </dl>
+        </dl>
+      )}
 
       <div className="recovery">
         <div className="recovery__top">

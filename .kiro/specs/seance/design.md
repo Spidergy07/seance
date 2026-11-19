@@ -172,6 +172,12 @@ params, and fragments, plus edge cases (empty path, trailing slash, already
 - `recoveryPercent = total === 0 ? 100 : Math.round(recovered / total * 100)`.
 - `unknown` and `missing` never count as recovered (R4.4, R8.6).
 - Grouping for the report: bucket missing assets by `kind` (R4.5).
+- Liveness (R5.1): `core/liveness.classifyLiveness(timestamp, now)` decides
+  whether the last working capture is recent (within `RECENTLY_ALIVE_DAYS`, 30).
+  When it is, the certificate does not show a death date; it shows "Still
+  answering recently. Last saved copy: <date>." and points the visitor at the
+  capture picker to open an older version. `now` is injected so the function is
+  pure and testable; the UI passes the real clock.
 
 ## 7. DOM rewriting (dom/rewrite-document.ts)
 - Walk these attributes: `a[href]`, `link[href]`, `script[src]`, `img[src]`,

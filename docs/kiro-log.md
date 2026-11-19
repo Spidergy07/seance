@@ -744,3 +744,23 @@ was built, which Kiro features were used, and any problem hit.
   background images report missing. Wrote the test first (3 failing), then
   implemented.
 - Verified: `npm run typecheck` clean; full suite 218 passing.
+
+
+## Task 29 — Do not call a recently-live site dead (fix round)
+
+- Bug: `homestarrunner.com` still answers today (last capture two days ago) yet
+  the certificate read "Died on 17 November 2026".
+- Root cause: the certificate always framed the last working capture as a death
+  date, with no check for how recent that capture is.
+- Fix: new pure module `src/core/liveness.ts` — `classifyLiveness(timestamp,
+  nowMs)` returns `recentlyAlive` when the last working capture is within
+  `RECENTLY_ALIVE_DAYS` (30). `now` is injected so the module stays pure. The
+  `DeathCertificate` takes an optional `now` prop (defaults to `Date.now()`) and
+  renders "Still answering recently. Last saved copy: <date>." plus a nudge to
+  pick an older capture, instead of a death date, when the site is recent.
+- Spec: design §6 (liveness rule under R5.1); tasks.md task 29.
+- Tests (offline): `tests/core/liveness.test.ts` (boundary at 30 days,
+  malformed/null timestamp) and new `DeathCertificate` cases with an injected
+  `now` (recent → alive copy, old → death date). Wrote tests first, then
+  implemented.
+- Verified: `npm run typecheck` clean; full suite 224 passing.

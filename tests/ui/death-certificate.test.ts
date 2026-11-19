@@ -87,3 +87,36 @@ describe('DeathCertificate', () => {
     expect(html).not.toContain('id="missing-spirits"');
   });
 });
+
+describe('DeathCertificate — recently-alive state (task 29)', () => {
+  // Fixed reference "now": 19 November 2026.
+  const NOW = Date.UTC(2026, 10, 19, 12, 0, 0);
+
+  function renderAt(report: RecoveryReport, now: number): string {
+    return renderToStaticMarkup(
+      createElement(DeathCertificate, { report, now }),
+    );
+  }
+
+  it('does not claim a death when the last capture is within 30 days', () => {
+    const recent = capture('20261117000000'); // two days before NOW
+    const html = renderAt(
+      { ...baseReport, selectedCapture: recent, lastWorkingCapture: recent },
+      NOW,
+    );
+    expect(html).toContain('Still answering recently');
+    expect(html).toContain('Last saved copy');
+    expect(html).toContain('17 November 2026');
+    // It must not present this as a death.
+    expect(html).not.toContain('Died on');
+    // It suggests picking an older capture.
+    expect(html).toContain('older capture');
+  });
+
+  it('still shows a death date for an old capture', () => {
+    const html = renderAt(baseReport, NOW); // 3 March 2008
+    expect(html).toContain('Died on');
+    expect(html).toContain('3 March 2008');
+    expect(html).not.toContain('Still answering recently');
+  });
+});
