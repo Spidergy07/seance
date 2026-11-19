@@ -8,13 +8,27 @@
 // stripped), so it renders in the app's own origin rather than the sandboxed
 // iframe the untrusted restored HTML uses.
 
+import { useEffect, useRef } from 'react';
 import type { ReaderResult } from '../dom/reader.js';
+import { guardReaderImages } from '../dom/reader-image-guard.js';
 
 export interface ReaderPaneProps {
   reader: ReaderResult;
 }
 
 export function ReaderPane({ reader }: ReaderPaneProps) {
+  // The reader body is sanitised archive-pointed HTML in the app's own DOM, so
+  // the restored view's injected image guard does not reach it. After the body
+  // renders, apply the same guard here: hide tracking-size images and replace
+  // any that fail to load with a plain placeholder, not a broken-image icon
+  // (task 54, R3.13, R7.4).
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (reader.ok && bodyRef.current !== null) {
+      guardReaderImages(bodyRef.current);
+    }
+  }, [reader]);
+
   return (
     <section
       className={reader.ok ? 'pane pane--reader' : 'pane pane--reader pane--note'}
@@ -31,6 +45,7 @@ export function ReaderPane({ reader }: ReaderPaneProps) {
             <h3 className="reader__title">{reader.title}</h3>
           )}
           <div
+            ref={bodyRef}
             className="reader__body"
             // Sanitised Readability output; asset URLs point at the archive.
             dangerouslySetInnerHTML={{ __html: reader.contentHtml }}

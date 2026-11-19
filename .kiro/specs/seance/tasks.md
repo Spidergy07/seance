@@ -528,7 +528,7 @@ tests and typecheck pass after each.
       files without calling them failures; `partialBanner` returns null when no
       checked asset is missing.
 
-54. [ ] **Robust reader-view images.** The Reader view showed a broken-image
+54. [x] **Robust reader-view images.** The Reader view showed a broken-image
     icon (NASA Kids: an image beside "Privacy Statement"). Apply the same
     failed-image handling the restored view uses: hide tracking-size (1×1/0×0)
     images and replace an image that fails to load with the small styled

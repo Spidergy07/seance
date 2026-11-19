@@ -1379,3 +1379,34 @@ test first where testable; full suite + typecheck + lint green after each.
   case is unchanged at 20% because all five were checked (1 recovered, 4
   missing, no unknown).
 - Verified: 331 tests pass (+6 net), typecheck and lint clean.
+
+## Task 54 — Robust reader-view images
+
+- Problem (browser re-test, Chrome vs live archive): the Reader view showed a
+  broken-image icon — on NASA Kids, an image beside "Privacy Statement" whose
+  archived capture does not resolve at the page timestamp. The restored view
+  already hides tracking pixels and replaces failed images (task 39, R3.13), but
+  that guard is a script injected into the sandboxed iframe; the reader pane
+  renders sanitised Readability HTML in the app's own DOM, so the guard never
+  reached it.
+- Fix (R3.13, R7.4, design §10):
+  - New `src/dom/reader-image-guard.ts`: `guardReaderImages(root)` applies the
+    same policy directly over the reader's `<img>` nodes — hide declared or
+    rendered 1×1/0×0 tracking pixels, and replace an image that fires `error`
+    with a small styled placeholder (`data-seance-img`, class
+    `reader__img-missing`, the plain `READER_IMAGE_PLACEHOLDER_TEXT`). It is
+    framework-free so it runs under linkedom and in the browser, and marks each
+    image once so it is idempotent.
+  - `ReaderPane` calls it from a `useEffect` over a ref to `.reader__body` after
+    the sanitised HTML renders (effects do not run under the SSR test renderer,
+    so the existing reader-pane tests are unaffected).
+  - `theme.css` gains a `.reader__img-missing` rule (dashed cold-grey border,
+    dim ink, sunken background) so the placeholder reads as a quiet, missing
+    slot rather than default text.
+- Kiro features used: spec-first (task entry, R3.13/R7.4 cited), test-first
+  (five linkedom tests for hide-tracking-pixel, replace-on-error, leave-normal,
+  idempotence — red before the module existed), voice.md (plain placeholder
+  text, no blame).
+- Verified: 336 tests pass (+5), typecheck and lint clean. That a real failed
+  archive image renders the placeholder in the browser is browser-only; added
+  to the re-check list below.

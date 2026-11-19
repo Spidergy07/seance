@@ -590,6 +590,17 @@ a {
 .reader__body a {
   color: var(--candle);
 }
+/* Placeholder shown in place of a reader image that failed to load from the
+   archive, instead of the browser's broken-image icon (task 54, R3.13). */
+.reader__img-missing {
+  display: inline-block;
+  padding: 4px 8px;
+  color: var(--ink-dim);
+  background: var(--bg-sunken);
+  border: 1px dashed var(--cold-deep);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+}
 .reader--empty {
   padding: var(--s-5);
   color: var(--ink-dim);
