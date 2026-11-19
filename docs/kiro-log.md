@@ -49,3 +49,19 @@ was built, which Kiro features were used, and any problem hit.
 - Kiro features used: `design.md` section 2 defined the shapes verbatim;
   `structure.md` fixed the location under `src/core/`.
 - Problems hit: none. Typecheck and lint clean.
+
+## Task 4 — Archive URL module
+
+- Implemented `src/core/archive-url.ts`: `buildArchiveUrl`, `parseArchiveUrl`,
+  `isArchiveUrl`, plus exported `ARCHIVE_HOST` and `ARCHIVE_PREFIX` constants so
+  the confinement invariant has one source of truth.
+- `buildArchiveUrl` throws on a non-14-digit timestamp so a bad capture can't
+  yield a bad archive URL. `parseArchiveUrl` accepts an optional Wayback
+  modifier (`id_`, `im_`, `js_`, ...) and only treats `id_` as raw.
+- Tests (`tests/core/archive-url.test.ts`, 19 cases): exact prefix shape with
+  and without `id_`, query/fragment appended verbatim, timestamp validation,
+  non-id_ modifier handling, http vs https, and the round-trip
+  `parse(build(u, ts)) === { u, ts, raw }` across several URLs.
+- Kiro features used: `design.md` §4.2/§4.4 (prefix format, modifier),
+  `requirements.md` R3.1, spec task done-criteria for the round-trip test.
+- Problems hit: none. 22 tests pass (incl. earlier), typecheck and lint clean.

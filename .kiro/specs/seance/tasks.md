@@ -28,7 +28,7 @@ Legend: [R#] requirement id, [D#] design section.
 3. [x] **Domain types.** Implement `src/core/types.ts` per [D2].
    - Done: types compile; no runtime code yet.
 
-4. **Archive URL module.** Implement `src/core/archive-url.ts`:
+4. [x] **Archive URL module.** Implement `src/core/archive-url.ts`:
    `buildArchiveUrl(originalUrl, timestamp, { raw })` and
    `parseArchiveUrl(archiveUrl)` → `{ originalUrl, timestamp, raw }`. Single
    source of truth for the archive prefix. [R3.1, D4.2 step 6, D4.4]
