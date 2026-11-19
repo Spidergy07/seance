@@ -1571,3 +1571,7 @@ test first where testable; full suite + typecheck + lint green after each.
 - Kiro features used: the write-up documents the Kiro workflow itself; facts
   were re-derived from `git log` and `npm test` rather than restated.
 - Verified: 342 tests pass, typecheck, lint, and build clean.
+
+## Task 60 — add demo video link
+
+- Replaced the README `Demo video:` placeholder with the real link, https://youtu.be/aaialAL09tA.
