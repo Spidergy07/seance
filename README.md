@@ -8,7 +8,7 @@ shows the restored page beside a clean, mobile-readable version.
 
 - **Live app:** https://kiroween-seance.vercel.app
 - **Hackathon:** Kiroween 2026, category Resurrection.
-- **Demo video:** https://youtu.be/aaialAL09tA
+- **Demo video:** https://youtu.be/Rfuid50wfv0
 
 ## Try these
 Paste one of these into the app to see a full recovery. Both are U.S.
